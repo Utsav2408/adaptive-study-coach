@@ -108,7 +108,7 @@ export default function NavBar() {
   const handleLogOut = useCallback(async () => {
     setDropdownOpen(false);
     await signOut();
-    navigate("/auth");
+    navigate("/");
   }, [signOut, navigate]);
 
   const initials = profile?.full_name
@@ -119,14 +119,14 @@ export default function NavBar() {
     <>
       <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
         {/* Left: brand */}
-        <Link to="/" className="text-lg font-semibold text-text-heading">
+        <Link to="/home" className="text-lg font-semibold text-text-heading">
           Study Coach
         </Link>
 
         {/* Right: nav links + avatar */}
         <div className="flex items-center gap-6">
           <Link
-            to="/"
+            to="/home"
             className="text-sm font-medium text-text-body transition-colors duration-150 hover:text-text-heading"
           >
             Home

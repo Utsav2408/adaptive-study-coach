@@ -2,14 +2,14 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import NavBar from "./components/NavBar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import LandingPage from "./pages/LandingPage";
 import Home from "./pages/Home";
 import Quiz from "./pages/Quiz";
 import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
-import Auth from "./pages/Auth";
 import Onboarding from "./pages/Onboarding";
 
-const navBarHiddenPaths = ["/quiz", "/results", "/auth", "/onboarding"];
+const navBarHiddenPaths = ["/quiz", "/results", "/onboarding"];
 
 export default function App() {
   const location = useLocation();
@@ -20,20 +20,23 @@ export default function App() {
       <div className="min-h-screen bg-surface">
         {showNavBar && <NavBar />}
         <Routes>
-          <Route path="/auth" element={<Auth />} />
+          {/* Public landing page */}
+          <Route path="/" element={<LandingPage />} />
+
+          {/* Auth-protected routes */}
+          <Route
+            path="/home"
+            element={
+              <ProtectedRoute>
+                <Home />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/onboarding"
             element={
               <ProtectedRoute>
                 <Onboarding />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Home />
               </ProtectedRoute>
             }
           />

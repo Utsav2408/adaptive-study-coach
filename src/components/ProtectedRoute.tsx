@@ -17,9 +17,9 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     );
   }
 
-  // ── Not authenticated → redirect to auth ──────────────────────
+  // ── Not authenticated → redirect to landing page ──────────────
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   // ── Wait for profile to finish loading ────────────────────────
