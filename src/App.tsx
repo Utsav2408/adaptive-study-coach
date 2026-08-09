@@ -9,7 +9,7 @@ import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
 import Onboarding from "./pages/Onboarding";
 
-const navBarHiddenPaths = ["/quiz", "/results", "/onboarding"];
+const navBarHiddenPaths = ["/", "/quiz", "/results", "/onboarding"];
 
 export default function App() {
   const location = useLocation();
