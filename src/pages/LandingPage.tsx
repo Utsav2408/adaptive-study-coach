@@ -207,7 +207,7 @@ export default function LandingPage() {
               Understand exactly where you're stuck.
             </span>
           </h1>
-          <p className="mt-5 max-w-lg text-lg leading-relaxed text-text-body">
+          <p className="mt-5 text-lg leading-relaxed text-text-body">
             Stop guessing. Take a targeted diagnostic quiz, uncover the
             specific subtopics tripping you up, and practice only what you
             actually need — so every study session counts.
