@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { useLocation, useNavigate, Navigate } from "react-router-dom";
-import { subtopics } from "../data/sampleQuiz";
+import { subtopics, quizSubject } from "../data/sampleQuiz";
+import { supabase } from "../lib/supabaseClient";
 
 interface QuestionResult {
   questionText: string;
@@ -15,6 +17,13 @@ interface ResultsState {
   totalQuestions: number;
   correctAnswers: number;
   questionResults: QuestionResult[];
+}
+
+interface GeneratedQuestion {
+  questionText: string;
+  subtopic: string;
+  options: string[];
+  correctAnswer: string;
 }
 
 const ERROR_TYPE_LABELS: Record<string, string> = {
@@ -43,6 +52,9 @@ export default function Results() {
   const navigate = useNavigate();
   const state = location.state as ResultsState | null;
 
+  const [generating, setGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+
   if (!state) {
     return <Navigate to="/" replace />;
   }
@@ -67,6 +79,53 @@ export default function Results() {
     subtopic: sub,
     wrongItems: wrongAnswers.filter((wa) => wa.subtopic === sub),
   }));
+
+  const handleStartTargetedPractice = async () => {
+    setGenerating(true);
+    setGenerateError(null);
+
+    try {
+      // If the user missed nothing, generate a general practice quiz
+      const targetSubtopics =
+        subtopicsToReview.length > 0 ? subtopicsToReview : undefined;
+
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "generate-quiz",
+        {
+          body: {
+            subject: quizSubject,
+            count: 5,
+            subtopics: targetSubtopics,
+          },
+        },
+      );
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      const questions: GeneratedQuestion[] = data.questions;
+
+      const questionsWithIds = questions.map((q, i) => ({
+        id: `ai-q${i + 1}`,
+        type: "multiple-choice" as const,
+        questionText: q.questionText,
+        subtopic: q.subtopic,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+      }));
+
+      navigate("/quiz", { state: { questions: questionsWithIds } });
+    } catch (err) {
+      console.error("Targeted practice generation failed:", err);
+      setGenerateError(
+        err instanceof Error
+          ? err.message
+          : "Failed to generate practice quiz. Please try again.",
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -238,12 +297,55 @@ export default function Results() {
           Try Again
         </button>
         <button
+          onClick={handleStartTargetedPractice}
+          disabled={generating}
+          className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
+            generating
+              ? "cursor-not-allowed bg-primary-light/60"
+              : "bg-primary hover:bg-primary-light active:scale-[0.98]"
+          }`}
+        >
+          {generating ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg
+                className="h-5 w-5 animate-spin text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Generating…
+            </span>
+          ) : (
+            "Start Targeted Practice"
+          )}
+        </button>
+        <button
           onClick={() => navigate("/dashboard")}
-          className="flex-1 cursor-pointer rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light"
+          className="flex-1 cursor-pointer rounded-lg bg-gray-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-gray-800"
         >
           View Dashboard
         </button>
       </div>
+
+      {generateError && (
+        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+          {generateError}
+        </p>
+      )}
     </div>
   );
 }

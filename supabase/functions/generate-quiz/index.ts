@@ -3,6 +3,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 interface GenerateQuizRequest {
   subject: string;
   count?: number;
+  /** Optional subtopics to focus on (for targeted practice from Results). */
+  subtopics?: string[];
 }
 
 interface Question {
@@ -42,7 +44,7 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const { subject, count = 5 }: GenerateQuizRequest = await req.json();
+    const { subject, count = 5, subtopics }: GenerateQuizRequest = await req.json();
 
     if (!subject) {
       return new Response(
@@ -59,7 +61,19 @@ Deno.serve(async (req: Request) => {
       throw new Error("AI_ML_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a math quiz generator. Generate ${count} multiple-choice algebra questions covering these subtopics: Linear Equations, Quadratic Equations, Inequalities, and Word Problems. Distribute the questions evenly across subtopics.
+    // Determine which subtopics to cover
+    const allSubtopics = [
+      "Linear Equations",
+      "Quadratic Equations",
+      "Inequalities",
+      "Word Problems",
+    ];
+    const targetSubtopics = subtopics && subtopics.length > 0
+      ? subtopics
+      : allSubtopics;
+    const subtopicList = targetSubtopics.join(", ");
+
+    const systemPrompt = `You are a math quiz generator. Generate ${count} multiple-choice algebra questions covering these subtopics: ${subtopicList}. Distribute the questions evenly across subtopics.
 
 Each question must have exactly 4 options. Exactly one option must be the correct answer.
 

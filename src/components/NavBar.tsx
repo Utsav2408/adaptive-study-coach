@@ -118,9 +118,27 @@ export default function NavBar() {
   return (
     <>
       <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
-        {/* Left: avatar + brand */}
-        <div className="flex items-center gap-3">
-          {/* Avatar button */}
+        {/* Left: brand */}
+        <Link to="/" className="text-lg font-semibold text-text-heading">
+          Study Coach
+        </Link>
+
+        {/* Right: nav links + avatar */}
+        <div className="flex items-center gap-6">
+          <Link
+            to="/"
+            className="text-sm font-medium text-text-body transition-colors duration-150 hover:text-text-heading"
+          >
+            Home
+          </Link>
+          <Link
+            to="/dashboard"
+            className="text-sm font-medium text-text-body transition-colors duration-150 hover:text-text-heading"
+          >
+            Dashboard
+          </Link>
+
+          {/* Avatar button — moved to right */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((o) => !o)}
@@ -132,7 +150,7 @@ export default function NavBar() {
 
             {/* Dropdown */}
             {dropdownOpen && (
-              <div className="absolute left-0 top-full mt-2 w-44 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+              <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
@@ -151,26 +169,6 @@ export default function NavBar() {
               </div>
             )}
           </div>
-
-          <Link to="/" className="text-lg font-semibold text-text-heading">
-            Study Coach
-          </Link>
-        </div>
-
-        {/* Right: nav links */}
-        <div className="flex items-center gap-6">
-          <Link
-            to="/"
-            className="text-sm font-medium text-text-body transition-colors duration-150 hover:text-text-heading"
-          >
-            Home
-          </Link>
-          <Link
-            to="/dashboard"
-            className="text-sm font-medium text-text-body transition-colors duration-150 hover:text-text-heading"
-          >
-            Dashboard
-          </Link>
         </div>
       </nav>
 

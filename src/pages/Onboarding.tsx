@@ -78,19 +78,28 @@ export default function Onboarding() {
 
     setSaving(true);
 
-    const { error: updateError } = await supabase
-      .from("profiles")
-      .update({
-        study_focus: resolvedStudyFocus,
-        proficiency_level: proficiencyLevel,
-        onboarding_completed: true,
-      })
-      .eq("id", user.id);
+    // Route the profile update through an Edge Function instead of
+    // calling Supabase REST API directly from the browser (fixes CORS
+    // and keeps our auth-flow writes server-side).
+    const { error: fnError } = await supabase.functions.invoke(
+      "update-onboarding",
+      {
+        body: {
+          study_focus: resolvedStudyFocus,
+          proficiency_level: proficiencyLevel,
+          onboarding_completed: true,
+        },
+      },
+    );
 
     setSaving(false);
 
-    if (updateError) {
-      setError(updateError.message);
+    if (fnError) {
+      setError(
+        fnError instanceof Error
+          ? fnError.message
+          : "Something went wrong. Please try again.",
+      );
       return;
     }
 
