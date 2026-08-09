@@ -7,12 +7,35 @@ interface QuestionResult {
   userAnswer: string;
   correctAnswer: string;
   isCorrect: boolean;
+  errorType: string | null;
+  explanation: string | null;
 }
 
 interface ResultsState {
   totalQuestions: number;
   correctAnswers: number;
   questionResults: QuestionResult[];
+}
+
+const ERROR_TYPE_LABELS: Record<string, string> = {
+  conceptual_misunderstanding: "Conceptual Misunderstanding",
+  procedural_error: "Procedural Error",
+  misapplied_method: "Misapplied Method",
+  prerequisite_gap: "Prerequisite Gap",
+  misread_question: "Misread Question",
+};
+
+const ERROR_TYPE_COLORS: Record<string, string> = {
+  conceptual_misunderstanding: "bg-purple-100 text-purple-700 border-purple-200",
+  procedural_error: "bg-orange-100 text-orange-700 border-orange-200",
+  misapplied_method: "bg-blue-100 text-blue-700 border-blue-200",
+  prerequisite_gap: "bg-rose-100 text-rose-700 border-rose-200",
+  misread_question: "bg-amber-100 text-amber-700 border-amber-200",
+};
+
+function getErrorBadgeColor(errorType: string | null): string {
+  if (!errorType) return "bg-gray-100 text-gray-500 border-gray-200";
+  return ERROR_TYPE_COLORS[errorType] ?? "bg-gray-100 text-gray-500 border-gray-200";
 }
 
 export default function Results() {
@@ -40,6 +63,12 @@ export default function Results() {
   const subtopicsToReview = subtopicBreakdown
     .filter((sb) => sb.correct < sb.total)
     .map((sb) => sb.subtopic);
+
+  // Group wrong answers by subtopic for the error analysis section
+  const wrongBySubtopic = subtopicsToReview.map((sub) => ({
+    subtopic: sub,
+    wrongItems: wrongAnswers.filter((wa) => wa.subtopic === sub),
+  }));
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -122,37 +151,69 @@ export default function Results() {
         </div>
       </section>
 
-      {/* Wrong answers detail */}
+      {/* Error analysis — grouped by subtopic */}
       {wrongAnswers.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-gray-900">
-            Incorrect Answers ({wrongAnswers.length})
+            Error Analysis
           </h2>
-          <div className="mt-3 space-y-4">
-            {wrongAnswers.map((wa, i) => (
-              <div
-                key={i}
-                className="rounded-lg border border-red-100 bg-red-50 p-4"
-              >
-                <p className="text-xs font-medium text-red-600">
-                  {wa.subtopic}
-                </p>
-                <p className="mt-1 text-sm font-medium text-gray-900">
-                  {wa.questionText}
-                </p>
-                <div className="mt-2 space-y-1 text-sm">
-                  <p>
-                    <span className="font-medium text-gray-700">
-                      Your answer:
-                    </span>{" "}
-                    <span className="text-red-600">{wa.userAnswer}</span>
-                  </p>
-                  <p>
-                    <span className="font-medium text-gray-700">
-                      Correct answer:
-                    </span>{" "}
-                    <span className="text-green-600">{wa.correctAnswer}</span>
-                  </p>
+          <p className="mt-1 text-sm text-gray-500">
+            AI-classified reasons for each mistake, grouped by topic.
+          </p>
+
+          <div className="mt-4 space-y-6">
+            {wrongBySubtopic.map((group) => (
+              <div key={group.subtopic}>
+                <h3 className="mb-2 text-sm font-semibold text-gray-800">
+                  {group.subtopic}
+                </h3>
+                <div className="space-y-3">
+                  {group.wrongItems.map((item, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-red-100 bg-white p-4 shadow-sm"
+                    >
+                      <p className="text-sm font-medium text-gray-900">
+                        {item.questionText}
+                      </p>
+
+                      {/* Error type badge */}
+                      {item.errorType ? (
+                        <span
+                          className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getErrorBadgeColor(item.errorType)}`}
+                        >
+                          {ERROR_TYPE_LABELS[item.errorType] ?? item.errorType}
+                        </span>
+                      ) : (
+                        <span className="mt-2 inline-block rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs text-gray-400">
+                          Classifying…
+                        </span>
+                      )}
+
+                      <div className="mt-2 space-y-1 text-sm">
+                        <p>
+                          <span className="font-medium text-gray-700">
+                            Your answer:
+                          </span>{" "}
+                          <span className="text-red-600">{item.userAnswer}</span>
+                        </p>
+                        <p>
+                          <span className="font-medium text-gray-700">
+                            Correct answer:
+                          </span>{" "}
+                          <span className="text-green-600">{item.correctAnswer}</span>
+                        </p>
+                      </div>
+
+                      {/* Explanation */}
+                      {item.explanation && (
+                        <div className="mt-3 rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
+                          <span className="font-medium">Why:</span>{" "}
+                          {item.explanation}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}

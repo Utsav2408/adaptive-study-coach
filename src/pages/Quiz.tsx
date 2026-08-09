@@ -12,6 +12,37 @@ interface SavedAnswer {
   isCorrect: boolean;
 }
 
+interface ErrorClassification {
+  errorType: string | null;
+  explanation: string | null;
+}
+
+const SUPABASE_FUNCTION_URL =
+  "https://huatkwptvhmquwyfhyry.supabase.co/functions/v1/classify-error";
+
+async function classifyError(
+  questionText: string,
+  correctAnswer: string,
+  userAnswer: string,
+): Promise<ErrorClassification> {
+  try {
+    const res = await fetch(SUPABASE_FUNCTION_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ questionText, correctAnswer, userAnswer }),
+    });
+    const data = await res.json();
+    // If error_type is null (function error), fall back gracefully
+    return {
+      errorType: data.error_type ?? null,
+      explanation: data.explanation ?? null,
+    };
+  } catch {
+    // Network error — fall back silently
+    return { errorType: null, explanation: null };
+  }
+}
+
 interface QuizState {
   questions?: Question[];
 }
@@ -83,8 +114,21 @@ export default function Quiz() {
         userAnswer: saved?.userAnswer ?? "",
         correctAnswer: q.correctAnswer,
         isCorrect,
+        errorType: null as string | null,
+        explanation: null as string | null,
       };
     });
+
+    // Classify each wrong answer via the AI edge function
+    const classificationPromises = questionResults.map(async (qr) => {
+      if (qr.isCorrect) return qr;
+      const result = await classifyError(qr.questionText, qr.correctAnswer, qr.userAnswer);
+      qr.errorType = result.errorType;
+      qr.explanation = result.explanation;
+      return qr;
+    });
+
+    const classifiedResults = await Promise.all(classificationPromises);
 
     // Persist to Supabase
     try {
@@ -103,13 +147,15 @@ export default function Quiz() {
       const { error: questionsError } = await supabase
         .from("question_results")
         .insert(
-          questionResults.map((qr) => ({
+          classifiedResults.map((qr) => ({
             quiz_result_id: quizResult.id,
             question_text: qr.questionText,
             subtopic: qr.subtopic,
             user_answer: qr.userAnswer,
             correct_answer: qr.correctAnswer,
             is_correct: qr.isCorrect,
+            error_type: qr.errorType,
+            explanation: qr.explanation,
           })),
         );
 
@@ -122,7 +168,7 @@ export default function Quiz() {
       state: {
         totalQuestions,
         correctAnswers: correctCount,
-        questionResults,
+        questionResults: classifiedResults,
       },
     });
   };

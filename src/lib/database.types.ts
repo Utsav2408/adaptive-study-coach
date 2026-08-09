@@ -16,6 +16,7 @@ export type Database = {
         Row: {
           correct_answer: string
           error_type: string | null
+          explanation: string | null
           id: string
           is_correct: boolean
           question_text: string
@@ -26,6 +27,7 @@ export type Database = {
         Insert: {
           correct_answer: string
           error_type?: string | null
+          explanation?: string | null
           id?: string
           is_correct: boolean
           question_text: string
@@ -36,6 +38,7 @@ export type Database = {
         Update: {
           correct_answer?: string
           error_type?: string | null
+          explanation?: string | null
           id?: string
           is_correct?: boolean
           question_text?: string
