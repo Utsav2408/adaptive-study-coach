@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
-import { subtopics } from "../data/sampleQuiz";
+import { quizSubject, subtopics } from "../data/sampleQuiz";
+import { useAuth } from "../contexts/AuthContext";
+import { useDiagnosticCheck } from "../hooks/useDiagnosticCheck";
 import {
   LineChart,
   Line,
@@ -34,6 +36,13 @@ interface QuestionResultRow {
   correct_answer: string;
   is_correct: boolean;
   error_type: string | null;
+}
+
+interface GeneratedQuestion {
+  questionText: string;
+  subtopic: string;
+  options: string[];
+  correctAnswer: string;
 }
 
 interface SubtopicStat {
@@ -118,11 +127,14 @@ function gapCellStyle(count: number, max: number) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { hasDiagnostic, checking } = useDiagnosticCheck(user?.id);
 
   const [quizResults, setQuizResults] = useState<QuizResultRow[]>([]);
   const [questionResults, setQuestionResults] = useState<QuestionResultRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("mastery");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -216,6 +228,83 @@ export default function Dashboard() {
     return point;
   });
 
+  /* ---- Navigation helpers ----------------------------------------- */
+
+  const handleStartDiagnostic = () => {
+    navigate("/quiz", { state: { sessionType: "diagnostic" } });
+  };
+
+  const handleStartTargetedPractice = async () => {
+    if (!user) return;
+    setGenerating(true);
+
+    try {
+      // 1. Get the most recent diagnostic session
+      const { data: lastDiag, error: diagErr } = await supabase
+        .from("quiz_results")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("subject", quizSubject)
+        .eq("session_type", "diagnostic")
+        .order("completed_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (diagErr || !lastDiag) {
+        navigate("/quiz", { state: { sessionType: "practice" } });
+        return;
+      }
+
+      // 2. Get question results to find weak subtopics
+      const { data: questionResults } = await supabase
+        .from("question_results")
+        .select("subtopic, is_correct")
+        .eq("quiz_result_id", lastDiag.id);
+
+      const weakSubtopics = subtopics.filter((sub) => {
+        const subQs = questionResults?.filter((q) => q.subtopic === sub) ?? [];
+        const correct = subQs.filter((q) => q.is_correct).length;
+        return correct < subQs.length;
+      });
+
+      const targetSubtopics =
+        weakSubtopics.length > 0 ? weakSubtopics : undefined;
+
+      // 3. Generate AI questions targeting weak areas
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "generate-quiz",
+        {
+          body: {
+            subject: quizSubject,
+            count: 5,
+            subtopics: targetSubtopics,
+          },
+        },
+      );
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+
+      const questions = (data.questions as GeneratedQuestion[]).map(
+        (q, i) => ({
+          id: `ai-q${i + 1}`,
+          type: "multiple-choice" as const,
+          questionText: q.questionText,
+          subtopic: q.subtopic,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+        }),
+      );
+
+      navigate("/quiz", { state: { questions, sessionType: "practice" } });
+    } catch (err) {
+      console.error("Targeted practice generation failed:", err);
+      navigate("/quiz", { state: { sessionType: "practice" } });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   /* ---- Tab config ------------------------------------------------ */
 
   const tabs: { id: TabId; label: string }[] = [
@@ -283,12 +372,63 @@ export default function Dashboard() {
             {quizResults.length > 1 ? "zes" : ""}.
           </p>
         </div>
-        <button
-          onClick={() => navigate("/quiz")}
-          className="cursor-pointer rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light"
-        >
-          New Quiz
-        </button>
+        {/* ── Conditional CTA ─────────────────────────────── */}
+        {checking ? (
+          <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
+        ) : hasDiagnostic ? (
+          <div className="flex flex-col items-end gap-1.5">
+            <button
+              onClick={handleStartTargetedPractice}
+              disabled={generating}
+              className={`cursor-pointer rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
+                generating
+                  ? "cursor-not-allowed bg-primary-light/60"
+                  : "bg-primary hover:bg-primary-light active:scale-[0.98]"
+              }`}
+            >
+              {generating ? (
+                <span className="flex items-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                    />
+                  </svg>
+                  Generating…
+                </span>
+              ) : (
+                "Start Targeted Practice"
+              )}
+            </button>
+            <button
+              onClick={handleStartDiagnostic}
+              className="cursor-pointer text-xs font-medium text-text-body underline-offset-2 hover:text-text-heading hover:underline"
+            >
+              Retake Diagnostic Quiz
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleStartDiagnostic}
+            className="cursor-pointer rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light active:scale-[0.98]"
+          >
+            New Quiz
+          </button>
+        )}
       </div>
 
       {/* ── Tab bar ─────────────────────────────────────────────── */}

@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { quizSubject, subtopics } from "../data/sampleQuiz";
 import { useAuth } from "../contexts/AuthContext";
+import { useDiagnosticCheck } from "../hooks/useDiagnosticCheck";
 
 interface GeneratedQuestion {
   questionText: string;
@@ -14,40 +15,8 @@ interface GeneratedQuestion {
 export default function Home() {
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  const [hasDiagnostic, setHasDiagnostic] = useState(false);
-  const [checking, setChecking] = useState(true);
+  const { hasDiagnostic, checking } = useDiagnosticCheck(user?.id);
   const [generating, setGenerating] = useState(false);
-
-  // ── Check for an existing diagnostic session ──────────────────────
-  useEffect(() => {
-    if (!user) {
-      setHasDiagnostic(false);
-      setChecking(false);
-      return;
-    }
-
-    const checkDiagnostic = async () => {
-      try {
-        const { data } = await supabase
-          .from("quiz_results")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("subject", quizSubject)
-          .eq("session_type", "diagnostic")
-          .order("completed_at", { ascending: false })
-          .limit(1);
-
-        setHasDiagnostic(data !== null && data.length > 0);
-      } catch {
-        setHasDiagnostic(false);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    checkDiagnostic();
-  }, [user]);
 
   // ── Start a fresh diagnostic quiz ─────────────────────────────────
   const handleStartDiagnostic = () => {
