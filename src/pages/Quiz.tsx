@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { sampleQuestions, quizSubject } from "../data/sampleQuiz";
 import type { Question } from "../data/sampleQuiz";
 import { supabase } from "../lib/supabaseClient";
@@ -12,8 +12,21 @@ interface SavedAnswer {
   isCorrect: boolean;
 }
 
+interface QuizState {
+  questions?: Question[];
+}
+
 export default function Quiz() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as QuizState | null;
+
+  // Use AI-generated questions if passed via state, otherwise fall back to sample
+  const questions: Question[] =
+    state?.questions && state.questions.length > 0
+      ? state.questions
+      : sampleQuestions;
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [textAnswer, setTextAnswer] = useState("");
@@ -21,8 +34,8 @@ export default function Quiz() {
   const [savedAnswers, setSavedAnswers] = useState<SavedAnswer[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const currentQuestion: Question = sampleQuestions[currentIndex];
-  const totalQuestions = sampleQuestions.length;
+  const currentQuestion: Question = questions[currentIndex];
+  const totalQuestions = questions.length;
   const isLastQuestion = currentIndex === totalQuestions - 1;
   const isMultipleChoice = currentQuestion.type === "multiple-choice";
   const hasValidAnswer = isMultipleChoice
@@ -60,7 +73,7 @@ export default function Quiz() {
 
     // Calculate results
     let correctCount = 0;
-    const questionResults = sampleQuestions.map((q) => {
+    const questionResults = questions.map((q) => {
       const saved = savedAnswers.find((s) => s.questionId === q.id);
       const isCorrect = saved?.isCorrect ?? false;
       if (isCorrect) correctCount++;

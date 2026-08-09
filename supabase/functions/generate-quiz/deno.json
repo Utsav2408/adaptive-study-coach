@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "serve": "deno serve --port 8000 index.ts"
+  },
+  "imports": {
+    "@supabase/supabase-js": "jsr:@supabase/supabase-js@^2.49.4",
+    "@supabase/functions-js": "jsr:@supabase/functions-js@^2.4.4"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "deno.unstable"]
+  }
+}
