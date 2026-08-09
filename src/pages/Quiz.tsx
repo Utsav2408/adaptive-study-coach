@@ -17,19 +17,33 @@ interface ErrorClassification {
   explanation: string | null;
 }
 
+const CLASSIFY_TIMEOUT_MS = 15_000;
+
 async function classifyError(
   questionText: string,
   correctAnswer: string,
   userAnswer: string,
 ): Promise<ErrorClassification> {
   try {
-    const { data, error } = await supabase.functions.invoke("classify-error", {
-      body: { questionText, correctAnswer, userAnswer },
-    });
+    // Race the actual call against a timeout so a slow AI API never
+    // blocks the user from seeing their results indefinitely
+    const result = await Promise.race([
+      supabase.functions.invoke("classify-error", {
+        body: { questionText, correctAnswer, userAnswer },
+      }),
+      new Promise<never>((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Classification timed out")),
+          CLASSIFY_TIMEOUT_MS,
+        ),
+      ),
+    ]);
+
+    const { data, error } = result as { data?: { error_type?: string | null; explanation?: string | null }; error?: unknown };
     if (error) throw error;
     return {
-      errorType: data.error_type ?? null,
-      explanation: data.explanation ?? null,
+      errorType: data?.error_type ?? null,
+      explanation: data?.explanation ?? null,
     };
   } catch {
     return { errorType: null, explanation: null };
@@ -341,11 +355,35 @@ export default function Quiz() {
                 : "bg-primary hover:bg-primary-light"
             }`}
           >
-            {saving
-              ? "Saving…"
-              : isLastQuestion
-                ? "See Results"
-                : "Next Question"}
+            {saving ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg
+                  className="h-4 w-4 animate-spin text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
+                </svg>
+                Reviewing your answers…
+              </span>
+            ) : isLastQuestion ? (
+              "See Results"
+            ) : (
+              "Next Question"
+            )}
           </button>
         )}
       </div>

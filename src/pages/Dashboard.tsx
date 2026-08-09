@@ -137,12 +137,15 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchData = async () => {
       setLoading(true);
       try {
         const { data: quizzes, error: quizError } = await supabase
           .from("quiz_results")
           .select("*")
+          .eq("user_id", user.id)
           .order("completed_at", { ascending: true });
 
         if (quizError) throw quizError;
@@ -167,7 +170,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, []);
+  }, [user]);
 
   /* ---- Derived data ----------------------------------------------- */
 
