@@ -91,8 +91,8 @@ const ERROR_LABELS: Record<string, string> = {
 const SUBTOPIC_COLORS: Record<string, string> = {
   "Linear Equations": "#1B2A4A",
   "Quadratic Equations": "#C9953E",
-  Inequalities: "#10b981",
-  "Word Problems": "#ef4444",
+  Inequalities: "#2E7D5A",
+  "Word Problems": "#B34A48",
 };
 
 type TabId = "mastery" | "gaps" | "trends";
@@ -115,10 +115,74 @@ function gapCellStyle(count: number, max: number) {
     return "bg-gray-50 text-gray-300";
   }
   const intensity = max > 0 ? count / max : 0;
-  if (intensity >= 0.75) return "bg-red-200 text-red-900 font-semibold";
-  if (intensity >= 0.5) return "bg-orange-100 text-orange-800 font-medium";
+  if (intensity >= 0.75) return "bg-red-100 text-red-800 font-semibold";
+  if (intensity >= 0.5) return "bg-orange-100 text-orange-700 font-medium";
   if (intensity >= 0.25) return "bg-yellow-50 text-yellow-700";
-  return "bg-blue-50 text-blue-700";
+  return "bg-blue-50 text-blue-600";
+}
+
+/* ── Mastery bar ──────────────────────────────────────────────────── */
+
+function MasteryBar({ label, correct, total, percentage }: SubtopicStat) {
+  const barColor =
+    percentage >= 80
+      ? "bg-gradient-to-r from-accent to-accent"
+      : percentage >= 50
+        ? "bg-gradient-to-r from-primary to-primary-light"
+        : "bg-gradient-to-r from-error to-error/80";
+
+  const labelColor =
+    percentage >= 80
+      ? "text-accent"
+      : percentage >= 50
+        ? "text-primary"
+        : "text-error";
+
+  return (
+    <div className="card-elevated p-4 transition-all duration-200 hover:shadow-card-hover">
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-sm font-medium text-text-heading">{label}</span>
+        <span className={`text-sm font-semibold ${labelColor}`}>
+          {percentage}%
+        </span>
+      </div>
+      <div className="progress-bar">
+        <div
+          className={`progress-bar-fill ${barColor}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      <div className="mt-1.5 text-xs text-text-muted">
+        {correct}/{total} correct
+      </div>
+    </div>
+  );
+}
+
+/* ── Empty state illustration ─────────────────────────────────────── */
+
+function EmptyStateIllustration() {
+  return (
+    <svg
+      viewBox="0 0 160 120"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-24 w-auto"
+      aria-hidden="true"
+    >
+      <rect x="20" y="20" width="120" height="80" rx="8" fill="#1B2A4A" opacity="0.06" />
+      <rect x="35" y="35" width="90" height="4" rx="2" fill="#1B2A4A" opacity="0.1" />
+      <rect x="35" y="48" width="60" height="4" rx="2" fill="#1B2A4A" opacity="0.07" />
+      <rect x="35" y="61" width="75" height="4" rx="2" fill="#1B2A4A" opacity="0.07" />
+      <rect x="35" y="74" width="45" height="4" rx="2" fill="#C9953E" opacity="0.15" />
+      {/* Small chart icon */}
+      <path d="M100 82 L108 68 L116 76 L124 62" stroke="#C9953E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.4" fill="none" />
+      <circle cx="100" cy="82" r="2.5" fill="#C9953E" opacity="0.4" />
+      <circle cx="108" cy="68" r="2.5" fill="#C9953E" opacity="0.4" />
+      <circle cx="116" cy="76" r="2.5" fill="#C9953E" opacity="0.4" />
+      <circle cx="124" cy="62" r="2.5" fill="#C9953E" opacity="0.4" />
+    </svg>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -242,7 +306,6 @@ export default function Dashboard() {
     setGenerating(true);
 
     try {
-      // 1. Get the most recent diagnostic session
       const { data: lastDiag, error: diagErr } = await supabase
         .from("quiz_results")
         .select("id")
@@ -258,7 +321,6 @@ export default function Dashboard() {
         return;
       }
 
-      // 2. Get question results to find weak subtopics
       const { data: questionResults } = await supabase
         .from("question_results")
         .select("subtopic, is_correct")
@@ -273,7 +335,6 @@ export default function Dashboard() {
       const targetSubtopics =
         weakSubtopics.length > 0 ? weakSubtopics : undefined;
 
-      // 3. Generate AI questions targeting weak areas
       const { data, error: fnError } = await supabase.functions.invoke(
         "generate-quiz",
         {
@@ -330,21 +391,7 @@ export default function Dashboard() {
   if (quizResults.length === 0) {
     return (
       <div className="mx-auto flex max-w-xl flex-col items-center px-4 pt-24 text-center">
-        <div className="rounded-full bg-primary/5 p-5">
-          <svg
-            className="h-10 w-10 text-primary/40"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={1.5}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-            />
-          </svg>
-        </div>
+        <EmptyStateIllustration />
         <h2 className="mt-5 text-xl font-semibold text-text-heading">
           No quiz history yet
         </h2>
@@ -354,7 +401,7 @@ export default function Dashboard() {
         </p>
         <button
           onClick={() => navigate("/quiz")}
-          className="mt-6 cursor-pointer rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light"
+          className="btn btn-primary mt-6 px-6 py-3 text-sm"
         >
           Take Your First Quiz
         </button>
@@ -365,7 +412,7 @@ export default function Dashboard() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between">
+      <div className="mb-2 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-text-heading">
             Dashboard
@@ -375,7 +422,6 @@ export default function Dashboard() {
             {quizResults.length > 1 ? "zes" : ""}.
           </p>
         </div>
-        {/* ── Conditional CTA ─────────────────────────────── */}
         {checking ? (
           <div className="h-10 w-32 animate-pulse rounded-lg bg-gray-200" />
         ) : hasDiagnostic ? (
@@ -383,11 +429,7 @@ export default function Dashboard() {
             <button
               onClick={handleStartTargetedPractice}
               disabled={generating}
-              className={`cursor-pointer rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
-                generating
-                  ? "cursor-not-allowed bg-primary-light/60"
-                  : "bg-primary hover:bg-primary-light active:scale-[0.98]"
-              }`}
+              className="btn btn-primary px-5 py-2.5 text-sm"
             >
               {generating ? (
                 <span className="flex items-center gap-2">
@@ -397,19 +439,8 @@ export default function Dashboard() {
                     fill="none"
                     viewBox="0 0 24 24"
                   >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                    />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                   </svg>
                   Generating…
                 </span>
@@ -419,7 +450,7 @@ export default function Dashboard() {
             </button>
             <button
               onClick={handleStartDiagnostic}
-              className="cursor-pointer text-xs font-medium text-text-body underline-offset-2 hover:text-text-heading hover:underline"
+              className="btn btn-ghost text-xs font-medium"
             >
               Retake Diagnostic Quiz
             </button>
@@ -427,7 +458,7 @@ export default function Dashboard() {
         ) : (
           <button
             onClick={handleStartDiagnostic}
-            className="cursor-pointer rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light active:scale-[0.98]"
+            className="btn btn-primary px-5 py-2.5 text-sm"
           >
             New Quiz
           </button>
@@ -436,7 +467,7 @@ export default function Dashboard() {
 
       {/* ── Tab bar ─────────────────────────────────────────────── */}
       <div
-        className="mt-6 flex rounded-lg border border-gray-200 bg-gray-50 p-1"
+        className="mt-6 flex rounded-xl bg-surface-muted p-1"
         role="tablist"
         aria-label="Dashboard views"
       >
@@ -450,7 +481,7 @@ export default function Dashboard() {
               aria-controls={`panel-${tab.id}`}
               id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 ${
+              className={`flex-1 cursor-pointer rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
                 isActive
                   ? "bg-white text-primary shadow-sm"
                   : "text-text-body hover:text-text-heading"
@@ -476,38 +507,13 @@ export default function Dashboard() {
             Mastery by Subtopic
           </h2>
           <p className="mt-1 text-sm text-text-body">
-            Overall accuracy across all quiz sessions.
+            Overall accuracy across all quiz sessions. Gold indicates strong mastery.
           </p>
 
-          <div className="mt-4 space-y-4">
-            {masteryStats.map((s) => {
-              const pct = s.percentage;
-              let barColor = "bg-red-500";
-              if (pct >= 80) barColor = "bg-green-500";
-              else if (pct >= 50) barColor = "bg-yellow-500";
-
-              return (
-                <div key={s.subtopic}>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-text-heading">
-                      {s.subtopic}
-                    </span>
-                    <span className="text-text-body">
-                      {s.correct}/{s.total}
-                      <span className="ml-1.5 font-semibold text-text-heading">
-                        {pct}%
-                      </span>
-                    </span>
-                  </div>
-                  <div className="relative mt-1.5 h-3 w-full overflow-hidden rounded-full bg-gray-100">
-                    <div
-                      className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {masteryStats.map((s) => (
+              <MasteryBar key={s.subtopic} {...s} />
+            ))}
           </div>
         </section>
       )}
@@ -529,16 +535,16 @@ export default function Dashboard() {
           </p>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[500px] border-collapse text-sm">
+            <table className="card-elevated w-full min-w-[500px] text-sm">
               <thead>
-                <tr>
-                  <th className="sticky left-0 bg-white px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-text-body">
+                <tr className="border-b border-gray-100">
+                  <th className="sticky left-0 bg-white px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-body">
                     Subtopic
                   </th>
                   {ERROR_TYPES.map((et) => (
                     <th
                       key={et}
-                      className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-text-body"
+                      className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-body"
                     >
                       {ERROR_LABELS[et]}
                     </th>
@@ -546,9 +552,9 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {gapData.map((row) => (
-                  <tr key={row.subtopic}>
-                    <td className="sticky left-0 bg-white px-3 py-3 text-sm font-medium text-text-heading">
+                {gapData.map((row, i) => (
+                  <tr key={row.subtopic} className={i < gapData.length - 1 ? "border-b border-gray-50" : ""}>
+                    <td className="sticky left-0 bg-white px-4 py-3.5 text-sm font-medium text-text-heading">
                       {row.subtopic}
                     </td>
                     {ERROR_TYPES.map((et) => {
@@ -556,7 +562,7 @@ export default function Dashboard() {
                       return (
                         <td
                           key={et}
-                          className={`px-3 py-3 text-center text-sm transition-colors ${gapCellStyle(count, maxGapCount)}`}
+                          className={`px-4 py-3.5 text-center text-sm transition-colors ${gapCellStyle(count, maxGapCount)}`}
                         >
                           {count > 0 ? count : "—"}
                         </td>
@@ -570,20 +576,20 @@ export default function Dashboard() {
 
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-text-body">
             <span className="font-medium text-text-heading">Frequency:</span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-red-200" /> High
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm bg-red-100" /> High
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-orange-100" /> Medium
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm bg-orange-100" /> Medium
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-yellow-50" /> Low
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm bg-yellow-50" /> Low
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-blue-50" /> Minimal
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm bg-blue-50" /> Minimal
             </span>
-            <span className="flex items-center gap-1">
-              <span className="inline-block h-3 w-3 rounded bg-gray-50" /> None
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-3 w-3 rounded-sm bg-gray-50" /> None
             </span>
           </div>
 
@@ -591,27 +597,29 @@ export default function Dashboard() {
             <summary className="cursor-pointer text-sm font-medium text-primary hover:text-primary-light">
               What do these error types mean?
             </summary>
-            <div className="mt-2 space-y-1.5 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-text-body">
-              <p>
-                <strong className="text-text-heading">Concept</strong> — The student
-                doesn't grasp the underlying principle.
-              </p>
-              <p>
-                <strong className="text-text-heading">Procedural</strong> — Correct
-                idea but execution slip (arithmetic, sign, etc.).
-              </p>
-              <p>
-                <strong className="text-text-heading">Method</strong> — Wrong
-                approach or formula for the situation.
-              </p>
-              <p>
-                <strong className="text-text-heading">Prerequisite</strong> —
-                Missing foundational knowledge.
-              </p>
-              <p>
-                <strong className="text-text-heading">Misread</strong> —
-                Misunderstood what the question was asking.
-              </p>
+            <div className="card-elevated mt-3 p-5 text-sm text-text-body">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <strong className="text-text-heading">Concept</strong> — The student
+                  doesn't grasp the underlying principle.
+                </div>
+                <div>
+                  <strong className="text-text-heading">Procedural</strong> — Correct
+                  idea but execution slip (arithmetic, sign, etc.).
+                </div>
+                <div>
+                  <strong className="text-text-heading">Method</strong> — Wrong
+                  approach or formula for the situation.
+                </div>
+                <div>
+                  <strong className="text-text-heading">Prerequisite</strong> —
+                  Missing foundational knowledge.
+                </div>
+                <div>
+                  <strong className="text-text-heading">Misread</strong> —
+                  Misunderstood what the question was asking.
+                </div>
+              </div>
             </div>
           </details>
         </section>
@@ -633,41 +641,43 @@ export default function Dashboard() {
           </p>
 
           {sessionData.length < 2 ? (
-            <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-8 text-center text-sm text-text-body">
+            <div className="card-elevated mt-6 p-8 text-center text-sm text-text-body">
               Complete at least two quizzes to see a trend chart.
             </div>
           ) : (
-            <div className="mt-4">
+            <div className="card-elevated mt-4 p-4 sm:p-6">
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart
                   data={trendChartData}
                   margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0efea" />
                   <XAxis
                     dataKey="label"
-                    tick={{ fontSize: 11, fill: "#5A5A5A" }}
-                    axisLine={{ stroke: "#d1d5db" }}
+                    tick={{ fontSize: 11, fill: "#8A8A8A" }}
+                    axisLine={{ stroke: "#e5e7eb" }}
                     tickLine={false}
                   />
                   <YAxis
                     domain={[0, 100]}
-                    tick={{ fontSize: 11, fill: "#5A5A5A" }}
+                    tick={{ fontSize: 11, fill: "#8A8A8A" }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                   />
                   <Tooltip
                     contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #e5e7eb",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                      borderRadius: 12,
+                      border: "1px solid rgb(0 0 0 / 0.06)",
+                      boxShadow: "0 4px 12px -2px rgb(0 0 0 / 0.08)",
                       fontSize: 13,
+                      padding: "8px 12px",
                     }}
                     formatter={(value: unknown) => [`${value}%`]}
                   />
                   <Legend
-                    wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                    wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
+                    iconType="circle"
                   />
                   {subtopics.map((sub) => (
                     <Line
@@ -675,9 +685,9 @@ export default function Dashboard() {
                       type="monotone"
                       dataKey={sub}
                       stroke={SUBTOPIC_COLORS[sub]}
-                      strokeWidth={2}
-                      dot={{ r: 4, strokeWidth: 1 }}
-                      activeDot={{ r: 6 }}
+                      strokeWidth={2.5}
+                      dot={{ r: 4, strokeWidth: 1, fill: "white" }}
+                      activeDot={{ r: 6, strokeWidth: 0 }}
                       connectNulls
                     />
                   ))}
@@ -691,16 +701,16 @@ export default function Dashboard() {
               View detailed session data
             </summary>
             <div className="mt-3 overflow-x-auto">
-              <table className="w-full min-w-[500px] text-sm">
+              <table className="card-elevated w-full min-w-[500px] text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-text-body">
+                  <tr className="border-b border-gray-100">
+                    <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-body">
                       Session
                     </th>
                     {subtopics.map((sub) => (
                       <th
                         key={sub}
-                        className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-text-body"
+                        className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-body"
                       >
                         {sub}
                       </th>
@@ -708,24 +718,24 @@ export default function Dashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sessionData.map((s) => (
-                    <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-700">
+                  {sessionData.map((s, i) => (
+                    <tr key={s.id} className={i < sessionData.length - 1 ? "border-b border-gray-50" : ""}>
+                      <td className="px-4 py-3 text-sm text-gray-700 font-medium">
                         {s.label}
                       </td>
                       {s.subtopicStats.map((st) => (
                         <td
                           key={st.subtopic}
-                          className="px-3 py-2 text-center text-sm font-medium"
+                          className="px-4 py-3 text-center text-sm font-medium"
                         >
                           {st.total > 0 ? (
                             <span
                               className={
                                 st.percentage >= 80
-                                  ? "text-green-600"
+                                  ? "text-success"
                                   : st.percentage >= 50
-                                    ? "text-yellow-600"
-                                    : "text-red-600"
+                                    ? "text-accent"
+                                    : "text-error"
                               }
                             >
                               {st.percentage}%

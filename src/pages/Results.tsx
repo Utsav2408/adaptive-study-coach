@@ -26,6 +26,84 @@ interface GeneratedQuestion {
   correctAnswer: string;
 }
 
+/* ── Circular score ring ──────────────────────────────────────────── */
+
+function ScoreRing({ correct, total }: { correct: number; total: number }) {
+  const percentage = total > 0 ? Math.round((correct / total) * 100) : 0;
+  const radius = 60;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  const ringColor =
+    percentage >= 80 ? "#2E7D5A" :
+    percentage >= 50 ? "#C9953E" :
+    "#B34A48";
+
+  const bgColor =
+    percentage >= 80 ? "#E6F3ED" :
+    percentage >= 50 ? "#F5EDE0" :
+    "#F8EAEA";
+
+  return (
+    <div className="flex flex-col items-center">
+      <svg width="150" height="150" viewBox="0 0 150 150" className="drop-shadow-sm">
+        {/* Background ring */}
+        <circle
+          cx="75"
+          cy="75"
+          r={radius}
+          fill="none"
+          stroke={bgColor}
+          strokeWidth="10"
+        />
+        {/* Score ring */}
+        <circle
+          cx="75"
+          cy="75"
+          r={radius}
+          fill="none"
+          stroke={ringColor}
+          strokeWidth="10"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          transform="rotate(-90 75 75)"
+          className="transition-all duration-1000 ease-out"
+          style={{ transition: "stroke-dashoffset 1s ease-out" }}
+        />
+        {/* Center text */}
+        <text
+          x="75"
+          y="68"
+          textAnchor="middle"
+          fill="#1A1A1A"
+          fontSize="32"
+          fontWeight="700"
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+        >
+          {correct}
+        </text>
+        <text
+          x="75"
+          y="90"
+          textAnchor="middle"
+          fill="#5A5A5A"
+          fontSize="14"
+          fontWeight="500"
+          fontFamily="ui-sans-serif, system-ui, sans-serif"
+        >
+          / {total}
+        </text>
+      </svg>
+      <p className="mt-2 text-lg font-semibold" style={{ color: ringColor }}>
+        {percentage}% correct
+      </p>
+    </div>
+  );
+}
+
+/* ── Error type constants ─────────────────────────────────────────── */
+
 const ERROR_TYPE_LABELS: Record<string, string> = {
   conceptual_misunderstanding: "Conceptual Misunderstanding",
   procedural_error: "Procedural Error",
@@ -34,18 +112,20 @@ const ERROR_TYPE_LABELS: Record<string, string> = {
   misread_question: "Misread Question",
 };
 
-const ERROR_TYPE_COLORS: Record<string, string> = {
-  conceptual_misunderstanding: "bg-purple-100 text-purple-700 border-purple-200",
-  procedural_error: "bg-orange-100 text-orange-700 border-orange-200",
-  misapplied_method: "bg-blue-100 text-blue-700 border-blue-200",
-  prerequisite_gap: "bg-rose-100 text-rose-700 border-rose-200",
-  misread_question: "bg-amber-100 text-amber-700 border-amber-200",
+const ERROR_TYPE_BADGES: Record<string, string> = {
+  conceptual_misunderstanding: "bg-purple-50 text-purple-700 border-purple-200",
+  procedural_error: "bg-orange-50 text-orange-700 border-orange-200",
+  misapplied_method: "bg-blue-50 text-blue-700 border-blue-200",
+  prerequisite_gap: "bg-rose-50 text-rose-700 border-rose-200",
+  misread_question: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
 function getErrorBadgeColor(errorType: string | null): string {
   if (!errorType) return "bg-gray-100 text-gray-500 border-gray-200";
-  return ERROR_TYPE_COLORS[errorType] ?? "bg-gray-100 text-gray-500 border-gray-200";
+  return ERROR_TYPE_BADGES[errorType] ?? "bg-gray-100 text-gray-500 border-gray-200";
 }
+
+/* ── Component ────────────────────────────────────────────────────── */
 
 export default function Results() {
   const location = useLocation();
@@ -85,7 +165,6 @@ export default function Results() {
     setGenerateError(null);
 
     try {
-      // If the user missed nothing, generate a general practice quiz
       const targetSubtopics =
         subtopicsToReview.length > 0 ? subtopicsToReview : undefined;
 
@@ -133,19 +212,12 @@ export default function Results() {
         Your Results
       </h1>
 
-      {/* Score card */}
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm">
-        <p className="text-sm font-medium text-text-body">Total Score</p>
-        <p className="mt-1 text-5xl font-bold text-primary">
-          {correctAnswers}
-          <span className="text-2xl text-gray-400">/{totalQuestions}</span>
-        </p>
-        <p className="mt-1 text-sm text-text-body">
-          {percentage}% correct
-        </p>
+      {/* ── Score ring ────────────────────────────────────────────── */}
+      <div className="card-elevated mt-6 p-8">
+        <ScoreRing correct={correctAnswers} total={totalQuestions} />
       </div>
 
-      {/* Areas to review */}
+      {/* ── Areas to review ───────────────────────────────────────── */}
       {wrongAnswers.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-text-heading">
@@ -157,10 +229,7 @@ export default function Results() {
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {subtopicsToReview.map((sub) => (
-              <span
-                key={sub}
-                className="rounded-full bg-accent-light/40 px-3 py-1.5 text-sm font-medium text-accent"
-              >
+              <span key={sub} className="tag tag-accent">
                 {sub}
               </span>
             ))}
@@ -168,7 +237,7 @@ export default function Results() {
         </section>
       )}
 
-      {/* Subtopic breakdown */}
+      {/* ── Subtopic breakdown ────────────────────────────────────── */}
       <section className="mt-8">
         <h2 className="text-lg font-semibold text-text-heading">
           Breakdown by Subtopic
@@ -177,11 +246,14 @@ export default function Results() {
           {subtopicBreakdown.map((sb) => {
             const subPercent =
               sb.total > 0 ? Math.round((sb.correct / sb.total) * 100) : 0;
+            const barColor =
+              subPercent >= 80
+                ? "bg-success"
+                : subPercent >= 50
+                  ? "bg-accent"
+                  : "bg-error";
             return (
-              <div
-                key={sb.subtopic}
-                className="rounded-lg border border-gray-200 bg-white p-4"
-              >
+              <div key={sb.subtopic} className="card-elevated p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-text-heading">
                     {sb.subtopic}
@@ -190,15 +262,9 @@ export default function Results() {
                     {sb.correct}/{sb.total}
                   </p>
                 </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                <div className="progress-bar mt-2">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      subPercent >= 80
-                        ? "bg-green-500"
-                        : subPercent >= 50
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                    }`}
+                    className={`progress-bar-fill ${barColor}`}
                     style={{ width: `${subPercent}%` }}
                   />
                 </div>
@@ -208,7 +274,7 @@ export default function Results() {
         </div>
       </section>
 
-      {/* Error analysis — grouped by subtopic */}
+      {/* ── Error analysis — grouped by subtopic ──────────────────── */}
       {wrongAnswers.length > 0 && (
         <section className="mt-8">
           <h2 className="text-lg font-semibold text-text-heading">
@@ -221,48 +287,39 @@ export default function Results() {
           <div className="mt-4 space-y-6">
             {wrongBySubtopic.map((group) => (
               <div key={group.subtopic}>
-                <h3 className="mb-2 text-sm font-semibold text-text-heading">
+                <h3 className="mb-3 text-sm font-semibold text-text-heading">
                   {group.subtopic}
                 </h3>
                 <div className="space-y-3">
                   {group.wrongItems.map((item, i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg border border-red-100 bg-white p-4 shadow-sm"
-                    >
+                    <div key={i} className="card-elevated p-5">
                       <p className="text-sm font-medium text-text-heading">
                         {item.questionText}
                       </p>
 
-                      {item.errorType ? (
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
-                          className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getErrorBadgeColor(item.errorType)}`}
+                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getErrorBadgeColor(item.errorType)}`}
                         >
-                          {ERROR_TYPE_LABELS[item.errorType] ?? item.errorType}
+                          {item.errorType
+                            ? (ERROR_TYPE_LABELS[item.errorType] ?? item.errorType)
+                            : "Classifying…"}
                         </span>
-                      ) : (
-                        <span className="mt-2 inline-block rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs text-gray-400">
-                          Classifying…
-                        </span>
-                      )}
+                      </div>
 
-                      <div className="mt-2 space-y-1 text-sm">
-                        <p>
-                          <span className="font-medium text-gray-700">
-                            Your answer:
-                          </span>{" "}
-                          <span className="text-red-600">{item.userAnswer}</span>
-                        </p>
-                        <p>
-                          <span className="font-medium text-gray-700">
-                            Correct answer:
-                          </span>{" "}
-                          <span className="text-green-600">{item.correctAnswer}</span>
-                        </p>
+                      <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                        <div className="rounded-lg bg-error-light/50 px-3 py-2">
+                          <span className="text-xs font-medium text-error">Your answer</span>
+                          <p className="mt-0.5 text-error">{item.userAnswer}</p>
+                        </div>
+                        <div className="rounded-lg bg-success-light/50 px-3 py-2">
+                          <span className="text-xs font-medium text-success">Correct answer</span>
+                          <p className="mt-0.5 text-success">{item.correctAnswer}</p>
+                        </div>
                       </div>
 
                       {item.explanation && (
-                        <div className="mt-3 rounded-md bg-gray-50 px-3 py-2 text-sm text-text-body">
+                        <div className="mt-3 rounded-lg bg-surface-muted px-4 py-3 text-sm text-text-body">
                           <span className="font-medium text-text-heading">Why:</span>{" "}
                           {item.explanation}
                         </div>
@@ -278,11 +335,16 @@ export default function Results() {
 
       {/* Perfect score — refined message */}
       {wrongAnswers.length === 0 && (
-        <section className="mt-8 rounded-lg border border-green-200 bg-green-50 p-6 text-center">
-          <p className="text-lg font-semibold text-green-700">
+        <section className="section-muted mt-8 p-8 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-success-light">
+            <svg className="h-7 w-7 text-success" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <p className="text-lg font-semibold text-success">
             Perfect score — all answers correct.
           </p>
-          <p className="mt-1 text-sm text-green-600">
+          <p className="mt-1 text-sm text-text-body">
             You answered every question correctly across all subtopics.
           </p>
         </section>
@@ -292,18 +354,14 @@ export default function Results() {
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <button
           onClick={() => navigate("/")}
-          className="flex-1 cursor-pointer rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-text-heading shadow-sm transition-all duration-150 hover:bg-gray-50"
+          className="btn btn-secondary flex-1 px-6 py-3 text-sm"
         >
           Try Again
         </button>
         <button
           onClick={handleStartTargetedPractice}
           disabled={generating}
-          className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
-            generating
-              ? "cursor-not-allowed bg-primary-light/60"
-              : "bg-primary hover:bg-primary-light active:scale-[0.98]"
-          }`}
+          className="btn btn-primary flex-1 px-6 py-3 text-sm"
         >
           {generating ? (
             <span className="flex items-center justify-center gap-2">
@@ -313,19 +371,8 @@ export default function Results() {
                 fill="none"
                 viewBox="0 0 24 24"
               >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                />
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
               Generating…
             </span>
@@ -335,14 +382,14 @@ export default function Results() {
         </button>
         <button
           onClick={() => navigate("/dashboard")}
-          className="flex-1 cursor-pointer rounded-lg bg-gray-700 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-gray-800"
+          className="btn bg-gray-700 text-white hover:bg-gray-800 flex-1 px-6 py-3 text-sm rounded-xl"
         >
           View Dashboard
         </button>
       </div>
 
       {generateError && (
-        <p className="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+        <p className="mt-4 rounded-lg bg-error-light px-4 py-3 text-sm text-error">
           {generateError}
         </p>
       )}

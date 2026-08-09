@@ -12,9 +12,46 @@ interface GeneratedQuestion {
   correctAnswer: string;
 }
 
+/* ── Home illustration (abstract study graphic) ──────────────────── */
+
+function HomeIllustration() {
+  return (
+    <svg
+      viewBox="0 0 200 160"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="h-28 w-auto sm:h-36"
+      aria-hidden="true"
+    >
+      {/* Open book base */}
+      <path d="M30 120 L100 90 L170 120 L100 140 Z" fill="#1B2A4A" opacity="0.08" />
+      {/* Left page */}
+      <path d="M30 115 Q60 82 100 88 L100 135 Q60 128 30 115Z" fill="#1B2A4A" opacity="0.12" />
+      {/* Right page */}
+      <path d="M100 88 Q140 82 170 115 L170 115 Q140 128 100 135Z" fill="#2C3F6A" opacity="0.10" />
+      {/* Accent line */}
+      <line x1="100" y1="88" x2="100" y2="138" stroke="#C9953E" strokeWidth="1.5" opacity="0.4" />
+      {/* Content lines left */}
+      <rect x="48" y="102" width="36" height="2.5" rx="1.25" fill="#1B2A4A" opacity="0.15" />
+      <rect x="48" y="112" width="30" height="2.5" rx="1.25" fill="#1B2A4A" opacity="0.10" />
+      <rect x="48" y="122" width="34" height="2.5" rx="1.25" fill="#1B2A4A" opacity="0.12" />
+      {/* Content lines right */}
+      <rect x="116" y="102" width="36" height="2.5" rx="1.25" fill="#2C3F6A" opacity="0.15" />
+      <rect x="116" y="112" width="30" height="2.5" rx="1.25" fill="#2C3F6A" opacity="0.10" />
+      {/* Checkmark */}
+      <circle cx="170" cy="45" r="22" fill="none" stroke="#C9953E" strokeWidth="2" opacity="0.25" />
+      <path d="M162 45 L167 51 L177 39" stroke="#C9953E" strokeWidth="2.5" fill="none" opacity="0.5" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Small accent dots */}
+      <circle cx="30" cy="45" r="4" fill="#C9953E" opacity="0.15" />
+      <circle cx="20" cy="55" r="2.5" fill="#1B2A4A" opacity="0.1" />
+      <circle cx="175" cy="80" r="3" fill="#C9953E" opacity="0.12" />
+    </svg>
+  );
+}
+
 export default function Home() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { hasDiagnostic, checking } = useDiagnosticCheck(user?.id);
   const [generating, setGenerating] = useState(false);
 
@@ -106,21 +143,28 @@ export default function Home() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-xl px-4 pt-20 text-center">
-      {/* ── Hero ──────────────────────────────────────────────────── */}
-      <h1 className="text-4xl font-bold tracking-tight text-text-heading sm:text-5xl">
-        Adaptive Study Coach
-      </h1>
-      <p className="mt-4 text-lg leading-relaxed text-text-body">
-        {hasDiagnostic
-          ? "You've completed your diagnostic quiz. Keep building on your strengths and targeting your weak areas."
-          : "Diagnose your understanding of key topics with a short diagnostic quiz. See which areas you've mastered and which need more practice."}
-      </p>
+  const displayName = profile?.full_name?.split(" ")[0] ?? "there";
 
-      {/* ── Subject card ──────────────────────────────────────────── */}
-      <div className="mt-12 rounded-lg border border-gray-200 bg-white p-6 text-left shadow-sm transition-all duration-150 hover:shadow-md">
-        <div className="flex items-start justify-between">
+  return (
+    <div className="mx-auto max-w-2xl px-4 pt-12 pb-16 sm:pt-20">
+      {/* ── Hero header ──────────────────────────────────────────── */}
+      <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
+        <HomeIllustration />
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-text-heading sm:text-4xl">
+            Hi, {displayName}
+          </h1>
+          <p className="mt-2 max-w-md text-base leading-relaxed text-text-body">
+            {hasDiagnostic
+              ? "You've completed your diagnostic. Keep building on your strengths and sharpening the areas that need work."
+              : "Diagnose your understanding of key topics with a short quiz. See what you've mastered and what needs practice."}
+          </p>
+        </div>
+      </div>
+
+      {/* ── Subject card ─────────────────────────────────────────── */}
+      <div className="card-elevated mt-10 p-6 sm:p-8">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h2 className="text-xl font-semibold text-text-heading">
               {quizSubject}
@@ -129,21 +173,17 @@ export default function Home() {
               4 subtopics · Multiple choice & short answer
             </p>
           </div>
-          <span className="rounded-full bg-accent-light/30 px-3 py-1 text-xs font-medium text-accent">
+          <span className="tag tag-accent self-start">
             {hasDiagnostic ? "In Progress" : "Recommended"}
           </span>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[
-            "Linear Equations",
-            "Quadratic Equations",
-            "Inequalities",
-            "Word Problems",
-          ].map((sub) => (
+        {/* Subtopic tags */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {["Linear Equations", "Quadratic Equations", "Inequalities", "Word Problems"].map((sub) => (
             <span
               key={sub}
-              className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-text-body"
+              className="tag tag-primary"
             >
               {sub}
             </span>
@@ -156,11 +196,7 @@ export default function Home() {
             <button
               onClick={handleStartTargetedPractice}
               disabled={generating}
-              className={`mt-5 w-full cursor-pointer rounded-lg px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 ${
-                generating
-                  ? "cursor-not-allowed bg-primary-light/60"
-                  : "bg-primary hover:bg-primary-light active:scale-[0.98]"
-              }`}
+              className="btn btn-primary mt-6 w-full px-8 py-3 text-base"
             >
               {generating ? (
                 <span className="flex items-center justify-center gap-2">
@@ -190,15 +226,15 @@ export default function Home() {
                 "Start Targeted Practice"
               )}
             </button>
-            <p className="mt-2 text-xs text-text-body">
+            <p className="mt-2 text-center text-xs text-text-muted">
               Refresh your baseline or try a different subject below.
             </p>
 
-            {/* ── Secondary: Retake Diagnostic ────────────────────── */}
-            <div className="mt-3 text-center">
+            {/* Secondary: Retake Diagnostic */}
+            <div className="mt-4 text-center">
               <button
                 onClick={handleStartDiagnostic}
-                className="cursor-pointer text-sm font-medium text-primary underline-offset-2 hover:text-primary-light hover:underline"
+                className="btn btn-ghost text-sm font-medium"
               >
                 Retake Diagnostic Quiz
               </button>
@@ -207,7 +243,7 @@ export default function Home() {
         ) : (
           <button
             onClick={handleStartDiagnostic}
-            className="mt-5 w-full cursor-pointer rounded-lg bg-primary px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light active:scale-[0.98]"
+            className="btn btn-primary mt-6 w-full px-8 py-3 text-base"
           >
             Start Diagnostic Quiz
           </button>
@@ -216,12 +252,15 @@ export default function Home() {
 
       {/* ── Dashboard link ────────────────────────────────────────── */}
       {hasDiagnostic && (
-        <div className="mt-6">
+        <div className="mt-8 text-center">
           <button
             onClick={() => navigate("/dashboard")}
-            className="cursor-pointer text-sm font-medium text-text-body underline-offset-2 hover:text-text-heading hover:underline"
+            className="btn btn-ghost text-sm font-medium gap-1.5"
           >
-            View your dashboard →
+            View your dashboard
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+            </svg>
           </button>
         </div>
       )}

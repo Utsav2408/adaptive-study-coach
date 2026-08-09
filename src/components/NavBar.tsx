@@ -59,7 +59,6 @@ export default function NavBar() {
   useEffect(() => {
     if (editOpen && profile) {
       setFullName(profile.full_name);
-      // Map stored study_focus to dropdown selection
       const storedFocus = profile.study_focus ?? "";
       const matched = STUDY_FOCUS_OPTIONS.find(
         (opt) => opt.value !== "other" && opt.value === storedFocus,
@@ -117,9 +116,9 @@ export default function NavBar() {
 
   return (
     <>
-      <nav className="flex items-center justify-between border-b border-gray-200 bg-white px-6 py-3">
+      <nav className="flex items-center justify-between border-b border-gray-200/80 bg-white/95 backdrop-blur-sm px-6 py-3">
         {/* Left: brand */}
-        <Link to="/home" className="text-lg font-semibold text-text-heading">
+        <Link to="/home" className="text-lg font-semibold tracking-tight text-text-heading">
           Study Coach
         </Link>
 
@@ -138,11 +137,11 @@ export default function NavBar() {
             Dashboard
           </Link>
 
-          {/* Avatar button — moved to right */}
+          {/* Avatar button */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen((o) => !o)}
-              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-sm font-semibold text-white transition-opacity duration-150 hover:opacity-90"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-primary text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:opacity-90 active:scale-[0.95]"
               title={profile?.full_name ?? "Profile"}
             >
               {initials}
@@ -150,7 +149,7 @@ export default function NavBar() {
 
             {/* Dropdown */}
             {dropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+              <div className="card-elevated absolute right-0 top-full mt-2 w-44 p-1 shadow-elevated animate-fade-in">
                 <button
                   onClick={() => {
                     setDropdownOpen(false);
@@ -162,7 +161,7 @@ export default function NavBar() {
                 </button>
                 <button
                   onClick={handleLogOut}
-                  className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-left text-sm text-red-600 transition-colors duration-150 hover:bg-red-50"
+                  className="flex w-full cursor-pointer items-center rounded-md px-3 py-2 text-left text-sm text-error transition-colors duration-150 hover:bg-error-light"
                 >
                   Log Out
                 </button>
@@ -175,11 +174,11 @@ export default function NavBar() {
       {/* ── Profile edit modal ──────────────────────────────────── */}
       {editOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 px-4 backdrop-blur-sm"
           onClick={() => setEditOpen(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg"
+            className="card-elevated-lg w-full max-w-sm p-6 animate-scale-in"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-text-heading">
@@ -199,7 +198,7 @@ export default function NavBar() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                  className="input-refined mt-1"
                 />
               </div>
 
@@ -211,7 +210,7 @@ export default function NavBar() {
                   id="edit-focus"
                   value={studyFocus}
                   onChange={(e) => setStudyFocus(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                  className="input-refined mt-1"
                 >
                   <option value="">Select your focus…</option>
                   {STUDY_FOCUS_OPTIONS.map((opt) => (
@@ -235,7 +234,7 @@ export default function NavBar() {
                       value={otherFocus}
                       onChange={(e) => setOtherFocus(e.target.value)}
                       placeholder="e.g. learning a new language"
-                      className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                      className="input-refined mt-1"
                       autoFocus
                     />
                   </div>
@@ -255,8 +254,8 @@ export default function NavBar() {
                       onClick={() => setProficiencyLevel(level.value)}
                       className={`flex-1 cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
                         proficiencyLevel === level.value
-                          ? "border-accent bg-accent/10 text-accent shadow-sm"
-                          : "border-gray-300 bg-white text-text-body hover:border-gray-400 hover:text-text-heading"
+                          ? "border-accent bg-accent-muted text-accent shadow-sm"
+                          : "border-gray-200 bg-white text-text-body hover:border-gray-300 hover:text-text-heading"
                       }`}
                     >
                       {level.label}
@@ -266,26 +265,22 @@ export default function NavBar() {
               </div>
 
               {saveError && (
-                <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+                <p className="rounded-lg bg-error-light px-3 py-2 text-sm text-error">
                   {saveError}
                 </p>
               )}
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setEditOpen(false)}
-                  className="flex-1 cursor-pointer rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-text-heading transition-colors duration-150 hover:bg-gray-50"
+                  className="btn btn-secondary flex-1 py-2.5 text-sm"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveProfile}
                   disabled={saving}
-                  className={`flex-1 cursor-pointer rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
-                    saving
-                      ? "cursor-not-allowed bg-primary-light/60"
-                      : "bg-primary hover:bg-primary-light"
-                  }`}
+                  className="btn btn-primary flex-1 py-2.5 text-sm"
                 >
                   {saving ? "Saving…" : "Save Changes"}
                 </button>

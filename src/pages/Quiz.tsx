@@ -25,8 +25,6 @@ async function classifyError(
   userAnswer: string,
 ): Promise<ErrorClassification> {
   try {
-    // Race the actual call against a timeout so a slow AI API never
-    // blocks the user from seeing their results indefinitely
     const result = await Promise.race([
       supabase.functions.invoke("classify-error", {
         body: { questionText, correctAnswer, userAnswer },
@@ -53,6 +51,27 @@ async function classifyError(
 interface QuizState {
   questions?: Question[];
   sessionType?: "diagnostic" | "practice";
+}
+
+/* ── Small progress indicator ─────────────────────────────────────── */
+
+function ProgressDots({ current, total }: { current: number; total: number }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      {Array.from({ length: total }).map((_, i) => (
+        <span
+          key={i}
+          className={`h-1.5 rounded-full transition-all duration-300 ${
+            i < current
+              ? "w-4 bg-primary"
+              : i === current
+                ? "w-6 bg-accent"
+                : "w-1.5 bg-gray-200"
+          }`}
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function Quiz() {
@@ -112,7 +131,6 @@ export default function Quiz() {
   const handleFinishQuiz = async () => {
     setSaving(true);
 
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id ?? null;
 
@@ -186,40 +204,43 @@ export default function Quiz() {
     });
   };
 
-  const progressPercent = (currentIndex / totalQuestions) * 100;
+  const progressPercent = ((currentIndex + 1) / totalQuestions) * 100;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-8">
-      {/* Progress bar */}
-      <div className="mb-6">
-        <div className="flex items-center justify-between text-sm text-text-body">
-          <span>
-            Question {currentIndex + 1} of {totalQuestions}
+      {/* ── Progress section ──────────────────────────────────────── */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-text-body">
+            Question <span className="font-medium text-text-heading">{currentIndex + 1}</span> of {totalQuestions}
           </span>
-          <span>{Math.round(progressPercent)}% complete</span>
+          <span className="text-text-muted">{Math.round(progressPercent)}%</span>
         </div>
-        <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+        <div className="progress-bar mt-2">
           <div
-            className="h-full rounded-full bg-primary transition-all duration-400 ease-out"
+            className="progress-bar-fill bg-gradient-to-r from-primary to-primary-light"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
+        <div className="mt-3">
+          <ProgressDots current={currentIndex} total={totalQuestions} />
+        </div>
       </div>
 
-      {/* Question card */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      {/* ── Question card ─────────────────────────────────────────── */}
+      <div className="card-elevated p-6 sm:p-8">
         {/* Subtopic badge */}
-        <span className="inline-block rounded-full bg-accent-light/30 px-3 py-1 text-xs font-medium text-accent">
+        <span className="tag tag-accent mb-4">
           {currentQuestion.subtopic}
         </span>
 
         {/* Question text */}
-        <h2 className="mt-4 text-lg font-semibold leading-relaxed text-text-heading">
+        <h2 className="text-xl font-semibold leading-relaxed text-text-heading sm:text-2xl">
           {currentQuestion.questionText}
         </h2>
 
         {/* Answer area */}
-        <div className="mt-6">
+        <div className="mt-8">
           {isMultipleChoice ? (
             <div className="space-y-3">
               {currentQuestion.options!.map((option) => {
@@ -232,25 +253,32 @@ export default function Quiz() {
                   isSelected &&
                   option !== currentQuestion.correctAnswer;
 
-                let borderClass = "border-gray-200 hover:border-gray-300 hover:bg-gray-50";
-                let bgClass = "bg-white";
-                let circleClass = "border-gray-300";
-                let textClass = "text-gray-700";
+                let containerClass = "border border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50";
+                let indicatorClass = "border-2 border-gray-300";
+                let indicatorInner = null;
+                let textClass = "text-text-body";
 
                 if (showCorrect) {
-                  borderClass = "border-green-400";
-                  bgClass = "bg-green-50";
-                  circleClass = "border-green-500 bg-green-500 text-white";
-                  textClass = "text-green-800";
+                  containerClass = "border-success bg-success-light";
+                  indicatorClass = "border-success bg-success text-white";
+                  indicatorInner = (
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  );
+                  textClass = "text-success font-medium";
                 } else if (showWrong) {
-                  borderClass = "border-red-400";
-                  bgClass = "bg-red-50";
-                  circleClass = "border-red-500 bg-red-500 text-white";
-                  textClass = "text-red-800";
+                  containerClass = "border-error bg-error-light";
+                  indicatorClass = "border-error bg-error text-white";
+                  indicatorInner = (
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  );
+                  textClass = "text-error font-medium";
                 } else if (isSelected && feedback === "unanswered") {
-                  borderClass = "border-primary";
-                  bgClass = "bg-primary/5";
-                  circleClass = "border-primary bg-primary text-white";
+                  containerClass = "border-primary bg-primary/5";
+                  indicatorClass = "border-primary bg-primary text-white";
                   textClass = "text-primary font-medium";
                 }
 
@@ -261,12 +289,12 @@ export default function Quiz() {
                       if (feedback === "unanswered") setSelectedOption(option);
                     }}
                     disabled={feedback !== "unanswered"}
-                    className={`flex w-full cursor-pointer items-center rounded-lg border px-4 py-3 text-left text-sm transition-all duration-150 ${borderClass} ${bgClass}`}
+                    className={`flex w-full cursor-pointer items-center rounded-xl px-4 py-3.5 text-left text-sm transition-all duration-150 ${containerClass}`}
                   >
                     <span
-                      className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${circleClass}`}
+                      className={`mr-3 flex h-6 w-6 shrink-0 items-center justify-center rounded-full transition-all duration-150 ${indicatorClass}`}
                     >
-                      {showCorrect || showWrong ? "✓" : isSelected && feedback === "unanswered" ? "✓" : ""}
+                      {indicatorInner}
                     </span>
                     <span className={textClass}>{option}</span>
                   </button>
@@ -287,12 +315,12 @@ export default function Quiz() {
                 }}
                 disabled={feedback !== "unanswered"}
                 placeholder="Type your answer here…"
-                className={`w-full rounded-lg border px-4 py-3 text-sm text-text-heading outline-none transition-all duration-150 ${
-                  feedback === "unanswered"
-                    ? "border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                    : feedback === "correct"
-                      ? "border-green-400 bg-green-50"
-                      : "border-red-400 bg-red-50"
+                className={`input-refined ${
+                  feedback === "correct"
+                    ? "border-success bg-success-light text-success"
+                    : feedback === "incorrect"
+                      ? "border-error bg-error-light text-error"
+                      : ""
                 }`}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && hasValidAnswer && feedback === "unanswered") {
@@ -307,10 +335,10 @@ export default function Quiz() {
         {/* Feedback message */}
         {feedback !== "unanswered" && (
           <div
-            className={`mt-4 rounded-lg p-3 text-sm ${
+            className={`mt-6 rounded-xl px-4 py-3 text-sm ${
               feedback === "correct"
-                ? "bg-green-50 text-green-700"
-                : "bg-red-50 text-red-700"
+                ? "bg-success-light text-success"
+                : "bg-error-light text-error"
             }`}
           >
             {feedback === "correct" ? (
@@ -321,7 +349,7 @@ export default function Quiz() {
             ) : (
               <p>
                 <span className="font-semibold">Not quite.</span> The correct answer is{" "}
-                <span className="font-medium text-green-600">
+                <span className="font-medium" style={{ color: "#2E7D5A" }}>
                   {currentQuestion.correctAnswer}
                 </span>
                 .
@@ -337,10 +365,10 @@ export default function Quiz() {
           <button
             onClick={handleSubmitAnswer}
             disabled={!hasValidAnswer}
-            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
+            className={`btn flex-1 px-6 py-3 text-sm ${
               hasValidAnswer
-                ? "bg-primary hover:bg-primary-light"
-                : "cursor-not-allowed bg-gray-300 text-gray-500"
+                ? "btn-primary"
+                : "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none hover:bg-gray-100"
             }`}
           >
             Submit Answer
@@ -349,11 +377,7 @@ export default function Quiz() {
           <button
             onClick={handleNext}
             disabled={saving}
-            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
-              saving
-                ? "cursor-not-allowed bg-gray-300 text-gray-500"
-                : "bg-primary hover:bg-primary-light"
-            }`}
+            className={`btn btn-primary flex-1 px-6 py-3 text-sm`}
           >
             {saving ? (
               <span className="flex items-center justify-center gap-2">
