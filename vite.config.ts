@@ -34,6 +34,7 @@ export default defineConfig(() => ({
     }),
   ],
   server: {
+    host: true,
     allowedHosts: true as const,
     hmr: false,
   },
