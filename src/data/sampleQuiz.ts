@@ -1,14 +1,18 @@
+export type QuestionType = "multiple-choice" | "short-answer";
+
 export interface Question {
   id: string;
+  type: QuestionType;
   questionText: string;
   subtopic: string;
-  options: string[];
+  options?: string[];
   correctAnswer: string;
 }
 
 export const sampleQuestions: Question[] = [
   {
     id: "q1",
+    type: "multiple-choice",
     questionText: "Solve for x: 2x + 5 = 13",
     subtopic: "Linear Equations",
     options: ["x = 3", "x = 4", "x = 5", "x = 6"],
@@ -16,6 +20,7 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q2",
+    type: "multiple-choice",
     questionText: "Solve for x: 3(x - 2) = 15",
     subtopic: "Linear Equations",
     options: ["x = 5", "x = 6", "x = 7", "x = 8"],
@@ -23,6 +28,7 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q3",
+    type: "multiple-choice",
     questionText: "Solve the quadratic: x² - 5x + 6 = 0",
     subtopic: "Quadratic Equations",
     options: ["x = 2, 3", "x = 1, 6", "x = -2, -3", "x = 5, 1"],
@@ -30,6 +36,7 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q4",
+    type: "multiple-choice",
     questionText: "Solve for x: x² = 49",
     subtopic: "Quadratic Equations",
     options: ["x = 7", "x = -7", "x = ±7", "x = 49"],
@@ -37,6 +44,7 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q5",
+    type: "multiple-choice",
     questionText: "Solve the inequality: 3x - 7 > 8",
     subtopic: "Inequalities",
     options: ["x > 5", "x > 3", "x < 5", "x > 15"],
@@ -44,6 +52,7 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q6",
+    type: "multiple-choice",
     questionText: "Solve: 2 ≤ 4x - 2 ≤ 10",
     subtopic: "Inequalities",
     options: ["1 ≤ x ≤ 3", "2 ≤ x ≤ 4", "0 ≤ x ≤ 2", "1 ≤ x ≤ 2.5"],
@@ -51,18 +60,16 @@ export const sampleQuestions: Question[] = [
   },
   {
     id: "q7",
-    questionText:
-      "A number plus 8 equals 20. What is the number?",
+    type: "short-answer",
+    questionText: "A number plus 8 equals 20. What is the number?",
     subtopic: "Word Problems",
-    options: ["10", "11", "12", "14"],
     correctAnswer: "12",
   },
   {
     id: "q8",
-    questionText:
-      "The sum of two consecutive integers is 47. What are the integers?",
+    type: "short-answer",
+    questionText: "The sum of two consecutive integers is 47. What are the integers? (Enter as 'x and y')",
     subtopic: "Word Problems",
-    options: ["22 and 25", "23 and 24", "22 and 23", "24 and 25"],
     correctAnswer: "23 and 24",
   },
 ];
