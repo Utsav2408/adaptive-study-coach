@@ -50,6 +50,15 @@ interface SessionData {
   subtopicStats: SubtopicStat[];
 }
 
+type GapDataRow = {
+  subtopic: string;
+  conceptual_misunderstanding: number;
+  procedural_error: number;
+  misapplied_method: number;
+  prerequisite_gap: number;
+  misread_question: number;
+};
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                         */
 /* ------------------------------------------------------------------ */
@@ -168,7 +177,7 @@ export default function Dashboard() {
   });
 
   // Gap breakdown: per-subtopic × error-type counts (incorrect only)
-  const gapData = subtopics.map((sub) => {
+  const gapData: GapDataRow[] = subtopics.map((sub) => {
     const wrong = questionResults.filter(
       (q) => q.subtopic === sub && !q.is_correct && q.error_type !== null,
     );
@@ -176,12 +185,12 @@ export default function Dashboard() {
     for (const et of ERROR_TYPES) {
       row[et] = wrong.filter((q) => q.error_type === et).length;
     }
-    return { subtopic: sub, ...row };
+    return { subtopic: sub, ...row } as GapDataRow;
   });
 
   // Max count across all gap cells (for colour scaling)
   const maxGapCount = Math.max(
-    ...gapData.flatMap((row) => ERROR_TYPES.map((et) => row[et] as number)),
+    ...gapData.flatMap((row) => ERROR_TYPES.map((et) => row[et])),
     1,
   );
 
@@ -410,7 +419,7 @@ export default function Dashboard() {
                       {row.subtopic}
                     </td>
                     {ERROR_TYPES.map((et) => {
-                      const count = row[et] as number;
+                      const count = row[et];
                       return (
                         <td
                           key={et}
@@ -526,7 +535,7 @@ export default function Dashboard() {
                       boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                       fontSize: 13,
                     }}
-                    formatter={(value: number) => [`${value}%`, undefined]}
+                    formatter={(value: unknown) => [`${value}%`]}
                   />
                   <Legend
                     wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
