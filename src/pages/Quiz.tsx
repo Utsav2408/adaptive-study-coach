@@ -17,28 +17,21 @@ interface ErrorClassification {
   explanation: string | null;
 }
 
-const SUPABASE_FUNCTION_URL =
-  "https://huatkwptvhmquwyfhyry.supabase.co/functions/v1/classify-error";
-
 async function classifyError(
   questionText: string,
   correctAnswer: string,
   userAnswer: string,
 ): Promise<ErrorClassification> {
   try {
-    const res = await fetch(SUPABASE_FUNCTION_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ questionText, correctAnswer, userAnswer }),
+    const { data, error } = await supabase.functions.invoke("classify-error", {
+      body: { questionText, correctAnswer, userAnswer },
     });
-    const data = await res.json();
-    // If error_type is null (function error), fall back gracefully
+    if (error) throw error;
     return {
       errorType: data.error_type ?? null,
       explanation: data.explanation ?? null,
     };
   } catch {
-    // Network error — fall back silently
     return { errorType: null, explanation: null };
   }
 }
@@ -52,7 +45,6 @@ export default function Quiz() {
   const location = useLocation();
   const state = location.state as QuizState | null;
 
-  // Use AI-generated questions if passed via state, otherwise fall back to sample
   const questions: Question[] =
     state?.questions && state.questions.length > 0
       ? state.questions
@@ -102,7 +94,10 @@ export default function Quiz() {
   const handleFinishQuiz = async () => {
     setSaving(true);
 
-    // Calculate results
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
+
     let correctCount = 0;
     const questionResults = questions.map((q) => {
       const saved = savedAnswers.find((s) => s.questionId === q.id);
@@ -119,7 +114,6 @@ export default function Quiz() {
       };
     });
 
-    // Classify each wrong answer via the AI edge function
     const classificationPromises = questionResults.map(async (qr) => {
       if (qr.isCorrect) return qr;
       const result = await classifyError(qr.questionText, qr.correctAnswer, qr.userAnswer);
@@ -130,7 +124,6 @@ export default function Quiz() {
 
     const classifiedResults = await Promise.all(classificationPromises);
 
-    // Persist to Supabase
     try {
       const { data: quizResult, error: quizError } = await supabase
         .from("quiz_results")
@@ -138,6 +131,7 @@ export default function Quiz() {
           subject: quizSubject,
           total_questions: totalQuestions,
           correct_answers: correctCount,
+          user_id: userId,
         })
         .select("id")
         .single();
@@ -173,14 +167,13 @@ export default function Quiz() {
     });
   };
 
-  // Progress percentage
-  const progressPercent = ((currentIndex) / totalQuestions) * 100;
+  const progressPercent = (currentIndex / totalQuestions) * 100;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col px-4 py-8">
       {/* Progress bar */}
       <div className="mb-6">
-        <div className="flex items-center justify-between text-sm text-gray-500">
+        <div className="flex items-center justify-between text-sm text-text-body">
           <span>
             Question {currentIndex + 1} of {totalQuestions}
           </span>
@@ -188,7 +181,7 @@ export default function Quiz() {
         </div>
         <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
-            className="h-full rounded-full bg-indigo-500 transition-all duration-400 ease-out"
+            className="h-full rounded-full bg-primary transition-all duration-400 ease-out"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -197,19 +190,18 @@ export default function Quiz() {
       {/* Question card */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         {/* Subtopic badge */}
-        <span className="inline-block rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+        <span className="inline-block rounded-full bg-accent-light/30 px-3 py-1 text-xs font-medium text-accent">
           {currentQuestion.subtopic}
         </span>
 
         {/* Question text */}
-        <h2 className="mt-4 text-lg font-semibold leading-relaxed text-gray-900">
+        <h2 className="mt-4 text-lg font-semibold leading-relaxed text-text-heading">
           {currentQuestion.questionText}
         </h2>
 
         {/* Answer area */}
         <div className="mt-6">
           {isMultipleChoice ? (
-            /* Multiple-choice options */
             <div className="space-y-3">
               {currentQuestion.options!.map((option) => {
                 const isSelected = selectedOption === option;
@@ -237,10 +229,10 @@ export default function Quiz() {
                   circleClass = "border-red-500 bg-red-500 text-white";
                   textClass = "text-red-800";
                 } else if (isSelected && feedback === "unanswered") {
-                  borderClass = "border-indigo-500";
-                  bgClass = "bg-indigo-50";
-                  circleClass = "border-indigo-500 bg-indigo-500 text-white";
-                  textClass = "text-indigo-700 font-medium";
+                  borderClass = "border-primary";
+                  bgClass = "bg-primary/5";
+                  circleClass = "border-primary bg-primary text-white";
+                  textClass = "text-primary font-medium";
                 }
 
                 return (
@@ -250,7 +242,7 @@ export default function Quiz() {
                       if (feedback === "unanswered") setSelectedOption(option);
                     }}
                     disabled={feedback !== "unanswered"}
-                    className={`flex w-full cursor-pointer items-center rounded-lg border px-4 py-3 text-left text-sm transition-all duration-150 ease-out active:scale-[0.98] ${borderClass} ${bgClass}`}
+                    className={`flex w-full cursor-pointer items-center rounded-lg border px-4 py-3 text-left text-sm transition-all duration-150 ${borderClass} ${bgClass}`}
                   >
                     <span
                       className={`mr-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${circleClass}`}
@@ -263,7 +255,6 @@ export default function Quiz() {
               })}
             </div>
           ) : (
-            /* Short-answer text input */
             <div>
               <label htmlFor="short-answer" className="sr-only">
                 Your answer
@@ -277,9 +268,9 @@ export default function Quiz() {
                 }}
                 disabled={feedback !== "unanswered"}
                 placeholder="Type your answer here…"
-                className={`w-full rounded-lg border px-4 py-3 text-sm text-gray-900 outline-none transition-all duration-150 ${
+                className={`w-full rounded-lg border px-4 py-3 text-sm text-text-heading outline-none transition-all duration-150 ${
                   feedback === "unanswered"
-                    ? "border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                    ? "border-gray-300 focus:border-primary focus:ring-2 focus:ring-primary/20"
                     : feedback === "correct"
                       ? "border-green-400 bg-green-50"
                       : "border-red-400 bg-red-50"
@@ -327,9 +318,9 @@ export default function Quiz() {
           <button
             onClick={handleSubmitAnswer}
             disabled={!hasValidAnswer}
-            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ease-out active:scale-[0.97] ${
+            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
               hasValidAnswer
-                ? "bg-indigo-600 hover:bg-indigo-700"
+                ? "bg-primary hover:bg-primary-light"
                 : "cursor-not-allowed bg-gray-300 text-gray-500"
             }`}
           >
@@ -339,10 +330,10 @@ export default function Quiz() {
           <button
             onClick={handleNext}
             disabled={saving}
-            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ease-out active:scale-[0.97] ${
+            className={`flex-1 cursor-pointer rounded-lg px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ${
               saving
                 ? "cursor-not-allowed bg-gray-300 text-gray-500"
-                : "bg-indigo-600 hover:bg-indigo-700"
+                : "bg-primary hover:bg-primary-light"
             }`}
           >
             {saving

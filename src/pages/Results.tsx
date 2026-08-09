@@ -59,12 +59,10 @@ export default function Results() {
 
   const wrongAnswers = questionResults.filter((r) => !r.isCorrect);
 
-  // Subtopics that need review (any wrong answers)
   const subtopicsToReview = subtopicBreakdown
     .filter((sb) => sb.correct < sb.total)
     .map((sb) => sb.subtopic);
 
-  // Group wrong answers by subtopic for the error analysis section
   const wrongBySubtopic = subtopicsToReview.map((sub) => ({
     subtopic: sub,
     wrongItems: wrongAnswers.filter((wa) => wa.subtopic === sub),
@@ -72,18 +70,18 @@ export default function Results() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+      <h1 className="text-3xl font-bold tracking-tight text-text-heading">
         Your Results
       </h1>
 
       {/* Score card */}
-      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
-        <p className="text-sm font-medium text-gray-500">Total Score</p>
-        <p className="mt-1 text-5xl font-bold text-indigo-600">
+      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-6 text-center shadow-sm">
+        <p className="text-sm font-medium text-text-body">Total Score</p>
+        <p className="mt-1 text-5xl font-bold text-primary">
           {correctAnswers}
           <span className="text-2xl text-gray-400">/{totalQuestions}</span>
         </p>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-text-body">
           {percentage}% correct
         </p>
       </div>
@@ -91,10 +89,10 @@ export default function Results() {
       {/* Areas to review */}
       {wrongAnswers.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-text-heading">
             Areas to Review
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-text-body">
             You got questions wrong in {subtopicsToReview.length} of{" "}
             {subtopics.length} subtopics:
           </p>
@@ -102,7 +100,7 @@ export default function Results() {
             {subtopicsToReview.map((sub) => (
               <span
                 key={sub}
-                className="rounded-full bg-red-50 px-3 py-1.5 text-sm font-medium text-red-700"
+                className="rounded-full bg-accent-light/40 px-3 py-1.5 text-sm font-medium text-accent"
               >
                 {sub}
               </span>
@@ -113,7 +111,7 @@ export default function Results() {
 
       {/* Subtopic breakdown */}
       <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-lg font-semibold text-text-heading">
           Breakdown by Subtopic
         </h2>
         <div className="mt-3 space-y-3">
@@ -126,10 +124,10 @@ export default function Results() {
                 className="rounded-lg border border-gray-200 bg-white p-4"
               >
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className="text-sm font-medium text-text-heading">
                     {sb.subtopic}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-text-body">
                     {sb.correct}/{sb.total}
                   </p>
                 </div>
@@ -154,17 +152,17 @@ export default function Results() {
       {/* Error analysis — grouped by subtopic */}
       {wrongAnswers.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-lg font-semibold text-text-heading">
             Error Analysis
           </h2>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-1 text-sm text-text-body">
             AI-classified reasons for each mistake, grouped by topic.
           </p>
 
           <div className="mt-4 space-y-6">
             {wrongBySubtopic.map((group) => (
               <div key={group.subtopic}>
-                <h3 className="mb-2 text-sm font-semibold text-gray-800">
+                <h3 className="mb-2 text-sm font-semibold text-text-heading">
                   {group.subtopic}
                 </h3>
                 <div className="space-y-3">
@@ -173,11 +171,10 @@ export default function Results() {
                       key={i}
                       className="rounded-lg border border-red-100 bg-white p-4 shadow-sm"
                     >
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-text-heading">
                         {item.questionText}
                       </p>
 
-                      {/* Error type badge */}
                       {item.errorType ? (
                         <span
                           className={`mt-2 inline-block rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getErrorBadgeColor(item.errorType)}`}
@@ -205,10 +202,9 @@ export default function Results() {
                         </p>
                       </div>
 
-                      {/* Explanation */}
                       {item.explanation && (
-                        <div className="mt-3 rounded-md bg-indigo-50 px-3 py-2 text-sm text-indigo-800">
-                          <span className="font-medium">Why:</span>{" "}
+                        <div className="mt-3 rounded-md bg-gray-50 px-3 py-2 text-sm text-text-body">
+                          <span className="font-medium text-text-heading">Why:</span>{" "}
                           {item.explanation}
                         </div>
                       )}
@@ -221,11 +217,11 @@ export default function Results() {
         </section>
       )}
 
-      {/* Perfect score celebration */}
+      {/* Perfect score — refined message */}
       {wrongAnswers.length === 0 && (
-        <section className="mt-8 rounded-xl border border-green-200 bg-green-50 p-6 text-center">
+        <section className="mt-8 rounded-lg border border-green-200 bg-green-50 p-6 text-center">
           <p className="text-lg font-semibold text-green-700">
-            Perfect score! 🎉
+            Perfect score — all answers correct.
           </p>
           <p className="mt-1 text-sm text-green-600">
             You answered every question correctly across all subtopics.
@@ -237,13 +233,13 @@ export default function Results() {
       <div className="mt-10 flex flex-col gap-3 sm:flex-row">
         <button
           onClick={() => navigate("/")}
-          className="flex-1 cursor-pointer rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-150 ease-out hover:bg-gray-50 active:scale-[0.97]"
+          className="flex-1 cursor-pointer rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-text-heading shadow-sm transition-all duration-150 hover:bg-gray-50"
         >
           Try Again
         </button>
         <button
           onClick={() => navigate("/dashboard")}
-          className="flex-1 cursor-pointer rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ease-out hover:bg-indigo-700 active:scale-[0.97]"
+          className="flex-1 cursor-pointer rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light"
         >
           View Dashboard
         </button>

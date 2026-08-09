@@ -35,7 +35,6 @@ export default function Home() {
 
       const questions: GeneratedQuestion[] = data.questions;
 
-      // Assign stable IDs to generated questions
       const questionsWithIds = questions.map((q, i) => ({
         id: `ai-q${i + 1}`,
         type: "multiple-choice" as const,
@@ -58,26 +57,26 @@ export default function Home() {
 
   return (
     <div className="mx-auto max-w-xl px-4 pt-20 text-center">
-      <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+      <h1 className="text-4xl font-bold tracking-tight text-text-heading sm:text-5xl">
         Adaptive Study Coach
       </h1>
-      <p className="mt-4 text-lg text-gray-600">
+      <p className="mt-4 text-lg leading-relaxed text-text-body">
         Diagnose your understanding of key topics with a short diagnostic quiz.
         See which areas you've mastered and which need more practice.
       </p>
 
       {/* Sample diagnostic quiz card */}
-      <div className="mt-12 rounded-xl border border-gray-200 bg-white p-6 text-left shadow-sm transition-all duration-150 hover:shadow-md">
+      <div className="mt-12 rounded-lg border border-gray-200 bg-white p-6 text-left shadow-sm transition-all duration-150 hover:shadow-md">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-text-heading">
               {quizSubject}
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-text-body">
               8 questions · 4 subtopics · Multiple choice & short answer
             </p>
           </div>
-          <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+          <span className="rounded-full bg-accent-light/30 px-3 py-1 text-xs font-medium text-accent">
             Recommended
           </span>
         </div>
@@ -86,7 +85,7 @@ export default function Home() {
             (sub) => (
               <span
                 key={sub}
-                className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600"
+                className="rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-text-body"
               >
                 {sub}
               </span>
@@ -95,28 +94,28 @@ export default function Home() {
         </div>
         <button
           onClick={() => navigate("/quiz")}
-          className="mt-5 w-full cursor-pointer rounded-lg bg-indigo-600 px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 ease-out hover:bg-indigo-700 active:scale-[0.97]"
+          className="mt-5 w-full cursor-pointer rounded-lg bg-primary px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 hover:bg-primary-light"
         >
           Start Diagnostic Quiz
         </button>
       </div>
 
       {/* AI-generated quiz card */}
-      <div className="mt-6 rounded-xl border border-indigo-100 bg-white p-6 text-left shadow-sm transition-all duration-150 hover:shadow-md">
+      <div className="mt-6 rounded-lg border border-primary/10 bg-white p-6 text-left shadow-sm transition-all duration-150 hover:shadow-md">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-text-heading">
               AI-Generated Practice
             </h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-text-body">
               5 fresh questions · Generated on demand · Multiple choice
             </p>
           </div>
-          <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
+          <span className="rounded-full bg-accent-light/30 px-3 py-1 text-xs font-medium text-accent">
             AI Powered
           </span>
         </div>
-        <p className="mt-3 text-sm leading-relaxed text-gray-600">
+        <p className="mt-3 text-sm leading-relaxed text-text-body">
           Get a unique set of algebra questions generated just for you. Every
           quiz is different — great for extra practice after finishing the
           diagnostic.
@@ -129,10 +128,10 @@ export default function Home() {
         <button
           onClick={handleGenerateQuiz}
           disabled={generating}
-          className={`mt-4 w-full cursor-pointer rounded-lg px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 ease-out active:scale-[0.97] ${
+          className={`mt-4 w-full cursor-pointer rounded-lg px-8 py-3 text-base font-semibold text-white shadow-sm transition-all duration-150 ${
             generating
-              ? "cursor-not-allowed bg-indigo-300"
-              : "bg-indigo-600 hover:bg-indigo-700"
+              ? "cursor-not-allowed bg-primary-light/60"
+              : "bg-primary hover:bg-primary-light"
           }`}
         >
           {generating ? (

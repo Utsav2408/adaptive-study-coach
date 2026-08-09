@@ -5,4 +5,11 @@ const supabaseUrl = "https://huatkwptvhmquwyfhyry.supabase.co";
 const supabaseAnonKey =
   "sb_publishable_FnEYay_n60cTpo8LerhF-Q_4Wz69JfT";
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    flowType: "implicit",
+  },
+});

@@ -12,6 +12,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      profiles: {
+        Row: {
+          id: string
+          full_name: string
+          study_focus: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          full_name: string
+          study_focus: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          full_name?: string
+          study_focus?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_results: {
         Row: {
           correct_answer: string
