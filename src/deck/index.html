@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adaptive Study Coach — AI Factory Hackathon 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <style>
+    /* --- Shared Layout --- */
+    html, body, .reveal, .reveal * {
+      font-family: var(--r-main-font), 'Segoe UI', system-ui, -apple-system, sans-serif !important;
+    }
+    .reveal h1, .reveal h2, .reveal h3,
+    .reveal .section-divider h2 {
+      font-family: var(--r-heading-font), 'Segoe UI', system-ui, sans-serif !important;
+    }
+    .two-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2.5em;
+      align-items: start; text-align: left;
+    }
+    .three-col {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5em;
+      text-align: center;
+    }
+    .metric-row {
+      display: flex; justify-content: center; gap: 3em;
+      text-align: center; margin: 1.5em 0;
+    }
+    .metric-row > div { flex: 1; }
+    .metric {
+      font-size: 4em; font-weight: 800; line-height: 1.1; display: block;
+    }
+    .metric-label {
+      font-size: 0.45em; text-transform: uppercase; letter-spacing: 0.1em;
+      opacity: 0.7; margin-top: 0.4em; display: block; font-weight: 500;
+    }
+    .card {
+      border-radius: 16px; padding: 1.5em 1.8em; text-align: left;
+    }
+    .card h3 { margin: 0 0 0.4em 0; font-size: 1.1em; }
+    .card p { font-size: 0.95em; line-height: 1.5; margin: 0; }
+    .card i, .card svg {
+      width: 36px; height: 36px; stroke-width: 1.5; margin-bottom: 0.6em;
+    }
+    .icon-feature {
+      display: flex; align-items: flex-start; gap: 1em;
+      margin: 0.7em 0; text-align: left;
+    }
+    .icon-feature i, .icon-feature svg {
+      flex-shrink: 0; width: 32px; height: 32px; stroke-width: 1.5;
+      margin-top: 0.1em;
+    }
+    .icon-feature div strong { display: block; margin-bottom: 0.15em; }
+    .steps {
+      counter-reset: step; list-style: none !important; padding: 0 !important;
+    }
+    .steps li {
+      counter-increment: step; display: flex; align-items: flex-start;
+      gap: 1em; margin: 0.7em 0; padding: 0;
+    }
+    .steps li::before {
+      content: counter(step); display: flex; align-items: center;
+      justify-content: center; min-width: 2em; height: 2em;
+      border-radius: 50%; font-weight: 700; font-size: 0.9em; flex-shrink: 0;
+    }
+    .subtitle {
+      font-size: 1.2em; opacity: 0.7; font-weight: 400; margin-top: 0.3em;
+    }
+    .reveal section.section-divider {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+    }
+    .reveal section.section-divider h2 {
+      font-size: 3.5em; margin: 0;
+    }
+    .reveal section.section-divider h2::after { display: none; }
+
+    /* --- Theme: Clean Slate --- */
+    :root {
+      --r-background-color: #f8fafc;
+      --r-main-color: #374151;
+      --r-heading-color: #111827;
+      --r-link-color: #3b82f6;
+      --r-heading-font: 'DM Sans', sans-serif;
+      --r-main-font: 'DM Sans', sans-serif;
+      --r-heading-text-transform: none;
+      --r-heading-font-weight: 700;
+      --r-main-font-size: 22px;
+    }
+    .reveal .slides section {
+      text-align: left;
+      color: #374151;
+      border-top: 4px solid #3b82f6;
+      padding-top: 1em;
+    }
+    .reveal h1 { font-size: 3.2em; color: #111827; letter-spacing: -0.02em; }
+    .reveal h2 { font-size: 2.2em; color: #111827; margin-bottom: 0.5em; }
+    .reveal h2::after {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 3px;
+      background: #3b82f6;
+      margin-top: 0.4em;
+    }
+    .reveal ul { list-style: disc; padding-left: 1.4em; color: #4b5563; }
+    .reveal .highlight { color: #2563eb; font-weight: 700; }
+    .reveal .metric { color: #1d4ed8; }
+    .reveal .card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .reveal .card { color: #374151; }
+    .reveal .card h3 { color: #111827; }
+    .reveal .card i, .reveal .card svg { color: #3b82f6; }
+    .reveal .icon-feature i,
+    .reveal .icon-feature svg { color: #3b82f6; }
+    .reveal .steps li::before {
+      background: #3b82f6; color: #fff;
+    }
+    .reveal h3 { color: #111827; }
+    .reveal section.title-slide {
+      border-top: none;
+      text-align: center;
+      background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+    }
+    .reveal section.title-slide h1 { color: #1d4ed8; }
+    .reveal section.section-divider {
+      border-top: none;
+      background: #eff6ff;
+    }
+    .reveal section.section-divider h2 { color: #1d4ed8; }
+
+    /* Custom additions for this deck */
+    .error-type {
+      display: inline-block;
+      background: #eff6ff;
+      border-radius: 6px;
+      padding: 0.15em 0.5em;
+      font-size: 0.65em;
+      font-weight: 600;
+      color: #2563eb;
+      margin-right: 0.3em;
+    }
+    .quote-block {
+      font-size: 1.4em;
+      font-weight: 500;
+      line-height: 1.5;
+      color: #111827;
+      padding: 0.5em 0;
+      text-align: center;
+    }
+    .quote-block .attribution {
+      font-size: 0.55em;
+      font-weight: 400;
+      color: #6b7280;
+      margin-top: 0.6em;
+      display: block;
+    }
+    .accent-stripe {
+      width: 100%;
+      height: 4px;
+      background: #3b82f6;
+      margin: 1.5em 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 1 — Title                                            -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section class="title-slide" data-auto-animate>
+        <h1 style="font-size: 3.8em; margin-bottom: 0.1em;">Adaptive Study Coach</h1>
+        <p style="font-size: 1.4em; color: #374151; font-weight: 500; max-width: 80%; margin: 0.3em auto;">
+          Learn smarter. Understand&nbsp;exactly where&nbsp;you're&nbsp;stuck.
+        </p>
+        <div style="margin-top: 2em; color: #6b7280; font-size: 0.9em; letter-spacing: 0.05em; text-transform: uppercase;">
+          AI Factory Hackathon · 2025
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 2 — Problem                                          -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section data-auto-animate>
+        <div class="quote-block">
+          "I got 6 out of 10.<br>
+          But <span class="highlight">I have no idea why</span> I missed those four."
+        </div>
+        <div class="accent-stripe"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5em; margin-top: 0.5em;">
+          <div class="card" style="text-align: center;">
+            <i data-lucide="search-x" style="width: 32px; height: 32px; display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center; font-size: 0.95em;">No diagnosis</h3>
+            <p style="font-size: 0.85em; text-align: center;">Students know what they got wrong, but not the type of mistake behind it.</p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="refresh-cw" style="width: 32px; height: 32px; display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center; font-size: 0.95em;">Wasted effort</h3>
+            <p style="font-size: 0.85em; text-align: center;">Re-studying material already understood instead of fixing the actual gap.</p>
+          </div>
+        </div>
+        <p style="margin-top: 0.8em; font-size: 0.9em; color: #6b7280; text-align: center;">
+          No personal tutor is available to explain <em>why</em> — until now.
+        </p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 3 — Solution / Differentiator                        -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section>
+        <h2>Solution</h2>
+        <p style="font-size: 1.1em; line-height: 1.6; margin-bottom: 0.6em;">
+          Most adaptive tools adjust difficulty by right/wrong. We go deeper — every wrong answer is classified into one of <span class="highlight">five error types</span>.
+        </p>
+        <div class="three-col" style="margin-top: 0.5em;">
+          <div class="card" style="text-align: center;">
+            <i data-lucide="brain" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Conceptual</h3>
+            <p style="font-size: 0.85em; text-align: center;">Misunderstood the core idea</p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="git-branch" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Procedural</h3>
+            <p style="font-size: 0.85em; text-align: center;">Correct concept, wrong steps</p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="shuffle" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Misapplied</h3>
+            <p style="font-size: 0.85em; text-align: center;">Used right method on wrong problem</p>
+          </div>
+        </div>
+        <div class="three-col" style="margin-top: 0.5em;">
+          <div class="card" style="text-align: center;">
+            <i data-lucide="layers" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Prerequisite</h3>
+            <p style="font-size: 0.85em; text-align: center;">Missing foundational knowledge</p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="eye-off" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Misread</h3>
+            <p style="font-size: 0.85em; text-align: center;">Understood problem, misread detail</p>
+          </div>
+          <div class="card" style="text-align: center; background: #eff6ff; border-color: #bfdbfe;">
+            <i data-lucide="sparkles" style="display: block; margin: 0 auto 0.4em; color: #2563eb;"></i>
+            <h3 style="text-align: center; color: #1d4ed8;">Actionable</h3>
+            <p style="font-size: 0.85em; text-align: center;">Each type leads to a different fix</p>
+          </div>
+        </div>
+        <p style="margin-top: 0.6em; text-align: center; font-size: 0.85em; color: #6b7280;">
+          "You understand quadratics conceptually, but keep making procedural errors" → targeted practice
+        </p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 4 — How It Works (Steps)                             -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section>
+        <h2>How It Works</h2>
+        <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 2em; align-items: center;">
+          <div>
+            <ol class="steps">
+              <li>
+                <div>
+                  <strong>Onboard</strong><br>
+                  <span style="font-size: 0.9em; color: #6b7280;">Set study focus and proficiency level</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Diagnostic quiz</strong><br>
+                  <span style="font-size: 0.9em; color: #6b7280;">AI-generated questions tailored to your subject</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Error classification</strong><br>
+                  <span style="font-size: 0.9em; color: #6b7280;">Every wrong answer tagged with a specific error type + explanation</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Targeted practice</strong><br>
+                  <span style="font-size: 0.9em; color: #6b7280;">New questions generated for your exact gaps</span>
+                </div>
+              </li>
+              <li>
+                <div>
+                  <strong>Track progress</strong><br>
+                  <span style="font-size: 0.9em; color: #6b7280;">Dashboard shows mastery, gaps, and trends over time</span>
+                </div>
+              </li>
+            </ol>
+          </div>
+          <div class="card" style="text-align: center; padding: 2em 1.5em; background: #eff6ff; border-color: #bfdbfe;">
+            <i data-lucide="arrow-right-left" style="width: 40px; height: 40px; display: block; margin: 0 auto 0.6em; color: #2563eb;"></i>
+            <h3 style="text-align: center; font-size: 0.9em; color: #1d4ed8;">From guessing to clarity</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Every study session starts with precise diagnosis — no more wasted time on things you already know.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 5 — Key Screens & Demo (Dashboard centerpiece)       -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section>
+        <h2>Key Screens</h2>
+        <div class="two-col" style="gap: 1.5em;">
+          <div>
+            <div class="card" style="margin-bottom: 0.8em;">
+              <i data-lucide="layout-dashboard"></i>
+              <h3>Dashboard</h3>
+              <p>Three-panel view: mastery per subtopic, subtopic × error-type grid, progress over time. The central "aha" screen.</p>
+            </div>
+            <div class="card" style="margin-bottom: 0.8em;">
+              <i data-lucide="help-circle"></i>
+              <h3>Quiz Interface</h3>
+              <p>AI-generated adaptive questions with clean single-question focus. No timer — self-paced.</p>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom: 0.8em;">
+              <i data-lucide="clipboard-check"></i>
+              <h3>Results</h3>
+              <p>Every wrong answer classified by error type with a plain-language explanation of what went wrong.</p>
+            </div>
+            <div class="card" style="margin-bottom: 0.8em;">
+              <i data-lucide="bar-chart-3"></i>
+              <h3>Gap Grid</h3>
+              <p>Heatmap of subtopics × error types — instantly see patterns across your attempts.</p>
+            </div>
+          </div>
+        </div>
+        <p style="text-align: center; margin-top: 0.3em; font-size: 0.85em; color: #6b7280;">
+          <span class="highlight">Dashboard is the centerpiece</span> — turning raw scores into actionable learning intelligence.
+        </p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 6 — Technology Stack                                 -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section>
+        <h2>Technology Stack</h2>
+        <div class="three-col">
+          <div class="card" style="text-align: center;">
+            <i data-lucide="package" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">native.builder</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Product Architect &amp; Builder<br>
+              <span style="color: #6b7280;">Rapid prototyping, AI-assisted development</span>
+            </p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="cpu" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">AI / ML API</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Quiz generation · Error classification<br>
+              <span style="color: #6b7280;">Targeted practice question engine</span>
+            </p>
+          </div>
+          <div class="card" style="text-align: center;">
+            <i data-lucide="database" style="display: block; margin: 0 auto 0.4em;"></i>
+            <h3 style="text-align: center;">Supabase</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Auth · User profiles ·<br>
+              <span style="color: #6b7280;">Persistent progress tracking</span>
+            </p>
+          </div>
+        </div>
+        <div style="margin-top: 0.8em; display: flex; justify-content: center; gap: 1em; flex-wrap: wrap;">
+          <span class="error-type">React</span>
+          <span class="error-type">TypeScript</span>
+          <span class="error-type">Tailwind CSS v4</span>
+          <span class="error-type">Edge Functions</span>
+          <span class="error-type">RLS Policies</span>
+        </div>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 7 — Business Value                                    -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section>
+        <h2>Who It's For</h2>
+        <div class="three-col" style="margin-top: 0.3em;">
+          <div class="card" style="text-align: center; padding: 1.8em 1em;">
+            <i data-lucide="backpack" style="display: block; margin: 0 auto 0.5em; width: 40px; height: 40px;"></i>
+            <h3 style="text-align: center; font-size: 1em;">K-12 Students</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Build foundational math and science skills with targeted gap diagnosis.
+            </p>
+          </div>
+          <div class="card" style="text-align: center; padding: 1.8em 1em;">
+            <i data-lucide="graduation-cap" style="display: block; margin: 0 auto 0.5em; width: 40px; height: 40px;"></i>
+            <h3 style="text-align: center; font-size: 1em;">College Students</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Exam prep, STEM fundamentals — stop re-studying what you already know.
+            </p>
+          </div>
+          <div class="card" style="text-align: center; padding: 1.8em 1em;">
+            <i data-lucide="briefcase" style="display: block; margin: 0 auto 0.5em; width: 40px; height: 40px;"></i>
+            <h3 style="text-align: center; font-size: 1em;">Professionals</h3>
+            <p style="font-size: 0.85em; text-align: center;">
+              Certifications, upskilling — efficient self-study that adapts to your gaps.
+            </p>
+          </div>
+        </div>
+        <div class="accent-stripe" style="width: 60%; margin: 1em auto;"></div>
+        <p style="text-align: center; font-size: 1em; color: #374151; max-width: 80%; margin: 0 auto;">
+          <span class="highlight">Broad, recurring use case:</span> any learner managing exam prep, certifications, or self-study — with a clear "aha" moment the first time they see <em>why</em> they keep making mistakes.
+        </p>
+      </section>
+
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <!-- SLIDE 8 — Closing / Thank You                              -->
+      <!-- ═══════════════════════════════════════════════════════════ -->
+      <section class="title-slide" data-auto-animate>
+        <h1 style="font-size: 3.4em; margin-bottom: 0.2em;">Thank You</h1>
+        <p style="font-size: 1.3em; color: #374151; max-width: 75%; margin: 0.5em auto; font-weight: 500;">
+          Stop guessing. Start knowing exactly where you're stuck.
+        </p>
+        <div style="margin-top: 1.5em; display: flex; justify-content: center; gap: 1em; flex-wrap: wrap;">
+          <i data-lucide="chrome" style="width: 28px; height: 28px;"></i>
+          <i data-lucide="github" style="width: 28px; height: 28px;"></i>
+        </div>
+        <div style="margin-top: 1em; color: #6b7280; font-size: 0.9em;">
+          AI Factory Hackathon · 2025
+        </div>
+        <p style="margin-top: 0.5em; font-size: 0.85em; color: #6b7280;">
+          Built with native.builder · React · TypeScript · Supabase
+        </p>
+      </section>
+
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    Reveal.initialize({
+      width: 960,
+      height: 540,
+      margin: 0.04,
+      minScale: 0.2,
+      maxScale: 3.0,
+      hash: true,
+      transition: 'fade',
+      transitionSpeed: 'default',
+      autoAnimateEasing: 'ease-out',
+      autoAnimateDuration: 0.8,
+      controls: true,
+      progress: true,
+      center: true,
+    });
+    lucide.createIcons();
+  </script>
+</body>
+</html>
