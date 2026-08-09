@@ -114,7 +114,7 @@ export default function Results() {
         correctAnswer: q.correctAnswer,
       }));
 
-      navigate("/quiz", { state: { questions: questionsWithIds } });
+      navigate("/quiz", { state: { questions: questionsWithIds, sessionType: "practice" } });
     } catch (err) {
       console.error("Targeted practice generation failed:", err);
       setGenerateError(

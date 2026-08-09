@@ -88,6 +88,7 @@ export type Database = {
           completed_at: string
           correct_answers: number
           id: string
+          session_type: string
           subject: string
           total_questions: number
           user_id: string | null
@@ -96,6 +97,7 @@ export type Database = {
           completed_at?: string
           correct_answers: number
           id?: string
+          session_type?: string
           subject: string
           total_questions: number
           user_id?: string | null
@@ -104,6 +106,7 @@ export type Database = {
           completed_at?: string
           correct_answers?: number
           id?: string
+          session_type?: string
           subject?: string
           total_questions?: number
           user_id?: string | null

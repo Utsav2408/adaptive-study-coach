@@ -38,12 +38,16 @@ async function classifyError(
 
 interface QuizState {
   questions?: Question[];
+  sessionType?: "diagnostic" | "practice";
 }
 
 export default function Quiz() {
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state as QuizState | null;
+
+  const sessionType: "diagnostic" | "practice" =
+    state?.sessionType ?? "diagnostic";
 
   const questions: Question[] =
     state?.questions && state.questions.length > 0
@@ -132,6 +136,7 @@ export default function Quiz() {
           total_questions: totalQuestions,
           correct_answers: correctCount,
           user_id: userId,
+          session_type: sessionType,
         })
         .select("id")
         .single();
