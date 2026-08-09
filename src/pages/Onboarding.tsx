@@ -35,9 +35,9 @@ export default function Onboarding() {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // If the user is already onboarded (proficiency_level set), redirect away
+  // If the user is already onboarded, redirect away
   useEffect(() => {
-    if (profile?.proficiency_level) {
+    if (profile?.onboarding_completed) {
       navigate("/", { replace: true });
     }
   }, [profile, navigate]);
@@ -83,6 +83,7 @@ export default function Onboarding() {
       .update({
         study_focus: resolvedStudyFocus,
         proficiency_level: proficiencyLevel,
+        onboarding_completed: true,
       })
       .eq("id", user.id);
 
@@ -98,7 +99,7 @@ export default function Onboarding() {
   };
 
   // If profile is still loading or user is already onboarded, show nothing
-  if (!profile || profile.proficiency_level) {
+  if (!profile || profile.onboarding_completed) {
     return null;
   }
 

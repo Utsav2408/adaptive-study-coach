@@ -17,6 +17,7 @@ export type Database = {
           created_at: string
           full_name: string
           id: string
+          onboarding_completed: boolean
           proficiency_level: string | null
           study_focus: string | null
         }
@@ -24,6 +25,7 @@ export type Database = {
           created_at?: string
           full_name: string
           id: string
+          onboarding_completed?: boolean
           proficiency_level?: string | null
           study_focus?: string | null
         }
@@ -31,6 +33,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+          onboarding_completed?: boolean
           proficiency_level?: string | null
           study_focus?: string | null
         }

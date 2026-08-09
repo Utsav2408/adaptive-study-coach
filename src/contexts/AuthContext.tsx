@@ -18,6 +18,7 @@ interface Profile {
   full_name: string;
   study_focus: string | null;
   proficiency_level: string | null;
+  onboarding_completed: boolean;
   created_at: string;
 }
 
@@ -31,6 +32,7 @@ interface AuthContextValue {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (
     email: string,
@@ -56,13 +58,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   // ── Fetch profile ──────────────────────────────────────────────
   const refreshProfile = useCallback(async () => {
     if (!user) {
       setProfile(null);
+      setProfileLoading(false);
       return;
     }
+    setProfileLoading(true);
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -75,6 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setProfile(data);
     }
+    setProfileLoading(false);
   }, [user]);
 
   // ── Initial session ────────────────────────────────────────────
@@ -92,8 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .then(({ data, error }) => {
             if (!error && data) setProfile(data);
           })
-          .then(() => setLoading(false));
+          .then(() => {
+            setProfileLoading(false);
+            setLoading(false);
+          });
       } else {
+        setProfileLoading(false);
         setLoading(false);
       }
     });
@@ -180,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         profile,
         loading,
+        profileLoading,
         signIn,
         signUp,
         signOut,
