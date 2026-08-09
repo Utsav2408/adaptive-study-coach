@@ -2,8 +2,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { subtopics } from "../data/sampleQuiz";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
-interface QuizResult {
+/* ------------------------------------------------------------------ */
+/*  Types                                                             */
+/* ------------------------------------------------------------------ */
+
+interface QuizResultRow {
   id: string;
   completed_at: string;
   subject: string;
@@ -11,7 +25,7 @@ interface QuizResult {
   correct_answers: number;
 }
 
-interface QuestionResult {
+interface QuestionResultRow {
   id: string;
   quiz_result_id: string;
   question_text: string;
@@ -19,13 +33,92 @@ interface QuestionResult {
   user_answer: string;
   correct_answer: string;
   is_correct: boolean;
+  error_type: string | null;
 }
+
+interface SubtopicStat {
+  subtopic: string;
+  correct: number;
+  total: number;
+  percentage: number;
+}
+
+interface SessionData {
+  id: string;
+  completedAt: string;
+  label: string;
+  subtopicStats: SubtopicStat[];
+}
+
+/* ------------------------------------------------------------------ */
+/*  Constants                                                         */
+/* ------------------------------------------------------------------ */
+
+const ERROR_TYPES = [
+  "conceptual_misunderstanding",
+  "procedural_error",
+  "misapplied_method",
+  "prerequisite_gap",
+  "misread_question",
+] as const;
+
+const ERROR_LABELS: Record<string, string> = {
+  conceptual_misunderstanding: "Concept",
+  procedural_error: "Procedural",
+  misapplied_method: "Method",
+  prerequisite_gap: "Prerequisite",
+  misread_question: "Misread",
+};
+
+const SUBTOPIC_COLORS: Record<string, string> = {
+  "Linear Equations": "#6366f1",
+  "Quadratic Equations": "#f59e0b",
+  Inequalities: "#10b981",
+  "Word Problems": "#ef4444",
+};
+
+type TabId = "mastery" | "gaps" | "trends";
+
+/* ------------------------------------------------------------------ */
+/*  Helpers                                                           */
+/* ------------------------------------------------------------------ */
+
+function computePercentage(correct: number, total: number): number {
+  return total > 0 ? Math.round((correct / total) * 100) : 0;
+}
+
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Gap cell colour helper                                            */
+/* ------------------------------------------------------------------ */
+
+function gapCellStyle(count: number, max: number) {
+  if (count === 0) {
+    return "bg-gray-50 text-gray-300";
+  }
+  // intensity 0-1 based on count relative to max
+  const intensity = max > 0 ? count / max : 0;
+  if (intensity >= 0.75) return "bg-red-200 text-red-900 font-semibold";
+  if (intensity >= 0.5) return "bg-orange-100 text-orange-800 font-medium";
+  if (intensity >= 0.25) return "bg-yellow-50 text-yellow-700";
+  return "bg-blue-50 text-blue-700";
+}
+
+/* ------------------------------------------------------------------ */
+/*  Component                                                         */
+/* ------------------------------------------------------------------ */
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
-  const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
+
+  const [quizResults, setQuizResults] = useState<QuizResultRow[]>([]);
+  const [questionResults, setQuestionResults] = useState<QuestionResultRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<TabId>("mastery");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,7 +127,7 @@ export default function Dashboard() {
         const { data: quizzes, error: quizError } = await supabase
           .from("quiz_results")
           .select("*")
-          .order("completed_at", { ascending: false });
+          .order("completed_at", { ascending: true });
 
         if (quizError) throw quizError;
 
@@ -60,29 +153,92 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  // Compute cumulative subtopic stats from all question results
-  const subtopicStats = subtopics.map((sub) => {
-    const subQuestions = questionResults.filter((q) => q.subtopic === sub);
-    const correct = subQuestions.filter((q) => q.is_correct).length;
+  /* ---- Derived data ----------------------------------------------- */
+
+  // Mastery: cumulative stats per subtopic across all sessions
+  const masteryStats: SubtopicStat[] = subtopics.map((sub) => {
+    const subQs = questionResults.filter((q) => q.subtopic === sub);
+    const correct = subQs.filter((q) => q.is_correct).length;
     return {
       subtopic: sub,
       correct,
-      total: subQuestions.length,
+      total: subQs.length,
+      percentage: computePercentage(correct, subQs.length),
     };
   });
 
+  // Gap breakdown: per-subtopic × error-type counts (incorrect only)
+  const gapData = subtopics.map((sub) => {
+    const wrong = questionResults.filter(
+      (q) => q.subtopic === sub && !q.is_correct && q.error_type !== null,
+    );
+    const row: Record<string, number> = {};
+    for (const et of ERROR_TYPES) {
+      row[et] = wrong.filter((q) => q.error_type === et).length;
+    }
+    return { subtopic: sub, ...row };
+  });
+
+  // Max count across all gap cells (for colour scaling)
+  const maxGapCount = Math.max(
+    ...gapData.flatMap((row) => ERROR_TYPES.map((et) => row[et] as number)),
+    1,
+  );
+
+  // Trend: per-session stats per subtopic
+  const sessionData: SessionData[] = quizResults.map((qr, idx) => {
+    const sessionQuestions = questionResults.filter(
+      (q) => q.quiz_result_id === qr.id,
+    );
+    const stats = subtopics.map((sub) => {
+      const subQs = sessionQuestions.filter((q) => q.subtopic === sub);
+      const correct = subQs.filter((q) => q.is_correct).length;
+      return {
+        subtopic: sub,
+        correct,
+        total: subQs.length,
+        percentage: computePercentage(correct, subQs.length),
+      };
+    });
+    return {
+      id: qr.id,
+      completedAt: qr.completed_at,
+      label: `#${idx + 1} ${formatDate(qr.completed_at)}`,
+      subtopicStats: stats,
+    };
+  });
+
+  // Trend data shaped for recharts: array of { label, 'Linear Equations': 80, ... }
+  const trendChartData = sessionData.map((s) => {
+    const point: Record<string, string | number> = { label: s.label };
+    for (const st of s.subtopicStats) {
+      point[st.subtopic] = st.percentage;
+    }
+    return point;
+  });
+
+  /* ---- Tab config ------------------------------------------------ */
+
+  const tabs: { id: TabId; label: string }[] = [
+    { id: "mastery", label: "Mastery" },
+    { id: "gaps", label: "Gap Breakdown" },
+    { id: "trends", label: "Trends" },
+  ];
+
+  /* ---- Render ---------------------------------------------------- */
+
   if (loading) {
     return (
-      <div className="mx-auto flex max-w-3xl items-center justify-center px-4 pt-20">
-        <p className="text-gray-500">Loading dashboard…</p>
+      <div className="mx-auto flex max-w-4xl items-center justify-center px-4 pt-20">
+        <p className="text-gray-400">Loading dashboard…</p>
       </div>
     );
   }
 
-  // Empty state
+  // ── Empty state ──────────────────────────────────────────────
   if (quizResults.length === 0) {
     return (
-      <div className="mx-auto flex max-w-xl flex-col items-center px-4 pt-20 text-center">
+      <div className="mx-auto flex max-w-xl flex-col items-center px-4 pt-24 text-center">
         <div className="rounded-full bg-indigo-50 p-5">
           <svg
             className="h-10 w-10 text-indigo-400"
@@ -101,7 +257,7 @@ export default function Dashboard() {
         <h2 className="mt-5 text-xl font-semibold text-gray-900">
           No quiz history yet
         </h2>
-        <p className="mt-2 text-sm text-gray-600">
+        <p className="mt-2 max-w-sm text-sm text-gray-600">
           Take your first diagnostic quiz to start tracking your progress across
           algebra subtopics.
         </p>
@@ -116,109 +272,340 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-        Dashboard
-      </h1>
-      <p className="mt-1 text-sm text-gray-500">
-        Track your progress across quiz attempts.
-      </p>
-
-      {/* Overall subtopic performance */}
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Overall Performance by Subtopic
-        </h2>
-        <div className="mt-3 space-y-3">
-          {subtopicStats.map((s) => {
-            const percent =
-              s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0;
-            return (
-              <div key={s.subtopic} className="rounded-md border border-gray-200 p-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900">
-                    {s.subtopic}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {s.correct}/{s.total}
-                  </p>
-                </div>
-                <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-gray-100">
-                  <div
-                    className={`h-full rounded-full transition-all duration-500 ${
-                      percent >= 80
-                        ? "bg-green-500"
-                        : percent >= 50
-                          ? "bg-yellow-500"
-                          : "bg-red-500"
-                    }`}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
+    <div className="mx-auto max-w-4xl px-4 py-8">
+      {/* Header */}
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Track your progress across {quizResults.length} quiz
+            {quizResults.length > 1 ? "zes" : ""}.
+          </p>
         </div>
-      </section>
-
-      {/* Quiz history table */}
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900">
-          Quiz History
-        </h2>
-        <div className="mt-3 overflow-hidden rounded-lg border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Subject
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Score
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {quizResults.map((qr) => {
-                const date = new Date(qr.completed_at).toLocaleDateString(
-                  "en-US",
-                  {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  },
-                );
-                return (
-                  <tr key={qr.id} className="hover:bg-gray-50">
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                      {date}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                      {qr.subject}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
-                      {qr.correct_answers}/{qr.total_questions}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {/* Take another quiz */}
-      <div className="mt-8">
         <button
           onClick={() => navigate("/quiz")}
-          className="cursor-pointer rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-150 ease-out hover:bg-indigo-700 active:scale-[0.97]"
+          className="cursor-pointer rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all duration-150 ease-out hover:bg-indigo-700 active:scale-[0.97]"
         >
-          Take Another Quiz
+          New Quiz
         </button>
       </div>
+
+      {/* ── Tab bar ─────────────────────────────────────────────── */}
+      <div
+        className="mt-6 flex rounded-lg border border-gray-200 bg-gray-50 p-1"
+        role="tablist"
+        aria-label="Dashboard views"
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`panel-${tab.id}`}
+              id={`tab-${tab.id}`}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 ease-out ${
+                isActive
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Tab panels ──────────────────────────────────────────── */}
+
+      {/* 1. Mastery overview */}
+      {activeTab === "mastery" && (
+        <section
+          id="panel-mastery"
+          role="tabpanel"
+          aria-labelledby="tab-mastery"
+          className="mt-6"
+        >
+          <h2 className="text-lg font-semibold text-gray-900">
+            Mastery by Subtopic
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Overall accuracy across all quiz sessions.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            {masteryStats.map((s) => {
+              const pct = s.percentage;
+              let barColor = "bg-red-500";
+              if (pct >= 80) barColor = "bg-green-500";
+              else if (pct >= 50) barColor = "bg-yellow-500";
+
+              return (
+                <div key={s.subtopic}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium text-gray-900">
+                      {s.subtopic}
+                    </span>
+                    <span className="text-gray-500">
+                      {s.correct}/{s.total}
+                      <span className="ml-1.5 font-semibold text-gray-700">
+                        {pct}%
+                      </span>
+                    </span>
+                  </div>
+                  <div className="relative mt-1.5 h-3 w-full overflow-hidden rounded-full bg-gray-100">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ease-out ${barColor}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* 2. Gap breakdown grid */}
+      {activeTab === "gaps" && (
+        <section
+          id="panel-gaps"
+          role="tabpanel"
+          aria-labelledby="tab-gaps"
+          className="mt-6"
+        >
+          <h2 className="text-lg font-semibold text-gray-900">
+            Error Pattern Breakdown
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Which error types appear most often in each subtopic? Darker cells
+            mean more frequent errors.
+          </p>
+
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[500px] border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 bg-white px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                    Subtopic
+                  </th>
+                  {ERROR_TYPES.map((et) => (
+                    <th
+                      key={et}
+                      className="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-gray-500"
+                    >
+                      {ERROR_LABELS[et]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {gapData.map((row) => (
+                  <tr key={row.subtopic}>
+                    <td className="sticky left-0 bg-white px-3 py-3 text-sm font-medium text-gray-900">
+                      {row.subtopic}
+                    </td>
+                    {ERROR_TYPES.map((et) => {
+                      const count = row[et] as number;
+                      return (
+                        <td
+                          key={et}
+                          className={`px-3 py-3 text-center text-sm transition-colors ${gapCellStyle(count, maxGapCount)}`}
+                        >
+                          {count > 0 ? count : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-gray-500">
+            <span className="font-medium text-gray-700">Frequency:</span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded bg-red-200" /> High
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded bg-orange-100" />{" "}
+              Medium
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded bg-yellow-50" /> Low
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded bg-blue-50" />{" "}
+              Minimal
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded bg-gray-50" /> None
+            </span>
+          </div>
+
+          {/* Error-type legend descriptions */}
+          <details className="mt-5">
+            <summary className="cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-700">
+              What do these error types mean?
+            </summary>
+            <div className="mt-2 space-y-1.5 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600">
+              <p>
+                <strong className="text-gray-800">Concept</strong> — The student
+                doesn't grasp the underlying principle.
+              </p>
+              <p>
+                <strong className="text-gray-800">Procedural</strong> — Correct
+                idea but execution slip (arithmetic, sign, etc.).
+              </p>
+              <p>
+                <strong className="text-gray-800">Method</strong> — Wrong
+                approach or formula for the situation.
+              </p>
+              <p>
+                <strong className="text-gray-800">Prerequisite</strong> —
+                Missing foundational knowledge.
+              </p>
+              <p>
+                <strong className="text-gray-800">Misread</strong> —
+                Misunderstood what the question was asking.
+              </p>
+            </div>
+          </details>
+        </section>
+      )}
+
+      {/* 3. Trend view */}
+      {activeTab === "trends" && (
+        <section
+          id="panel-trends"
+          role="tabpanel"
+          aria-labelledby="tab-trends"
+          className="mt-6"
+        >
+          <h2 className="text-lg font-semibold text-gray-900">
+            Progress Over Time
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Mastery percentage per subtopic across your quiz sessions.
+          </p>
+
+          {sessionData.length < 2 ? (
+            <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-500">
+              Complete at least two quizzes to see a trend chart.
+            </div>
+          ) : (
+            <div className="mt-4">
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart
+                  data={trendChartData}
+                  margin={{ top: 8, right: 16, bottom: 8, left: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    axisLine={{ stroke: "#d1d5db" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: 11, fill: "#6b7280" }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #e5e7eb",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                      fontSize: 13,
+                    }}
+                    formatter={(value: number) => [`${value}%`, undefined]}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                  />
+                  {subtopics.map((sub) => (
+                    <Line
+                      key={sub}
+                      type="monotone"
+                      dataKey={sub}
+                      stroke={SUBTOPIC_COLORS[sub]}
+                      strokeWidth={2}
+                      dot={{ r: 4, strokeWidth: 1 }}
+                      activeDot={{ r: 6 }}
+                      connectNulls
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Per-subtopic breakdown table */}
+          <details className="mt-6">
+            <summary className="cursor-pointer text-sm font-medium text-indigo-600 hover:text-indigo-700">
+              View detailed session data
+            </summary>
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full min-w-[500px] text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      Session
+                    </th>
+                    {subtopics.map((sub) => (
+                      <th
+                        key={sub}
+                        className="px-3 py-2 text-center text-xs font-semibold uppercase tracking-wider text-gray-500"
+                      >
+                        {sub}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessionData.map((s) => (
+                    <tr key={s.id} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="px-3 py-2 text-sm text-gray-700">
+                        {s.label}
+                      </td>
+                      {s.subtopicStats.map((st) => (
+                        <td
+                          key={st.subtopic}
+                          className="px-3 py-2 text-center text-sm font-medium"
+                        >
+                          {st.total > 0 ? (
+                            <span
+                              className={
+                                st.percentage >= 80
+                                  ? "text-green-600"
+                                  : st.percentage >= 50
+                                    ? "text-yellow-600"
+                                    : "text-red-600"
+                              }
+                            >
+                              {st.percentage}%
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
+      )}
     </div>
   );
 }
