@@ -13,11 +13,13 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
     setSubmitting(true);
 
     try {
@@ -34,9 +36,16 @@ export default function Auth() {
           setSubmitting(false);
           return;
         }
-        const { error: err } = await signUp(email, password, fullName.trim());
-        if (err) {
-          setError(err);
+        const result = await signUp(email, password, fullName.trim());
+        if (result.error) {
+          setError(result.error);
+        } else if (result.emailConfirmationSent) {
+          setMode("login");
+          setError(null);
+          setEmail("");
+          setPassword("");
+          setFullName("");
+          setSuccess("Account created! Check your email for a confirmation link.");
         } else {
           navigate("/onboarding");
         }
@@ -51,6 +60,7 @@ export default function Auth() {
   const switchMode = () => {
     setMode(mode === "login" ? "signup" : "login");
     setError(null);
+    setSuccess(null);
   };
 
   return (
@@ -70,7 +80,7 @@ export default function Auth() {
         <div className="mt-6 flex rounded-lg border border-gray-200 bg-gray-50 p-0.5">
           <button
             type="button"
-            onClick={() => { setMode("login"); setError(null); }}
+            onClick={() => { setMode("login"); setError(null); setSuccess(null); }}
             className={`flex-1 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 ${
               mode === "login"
                 ? "bg-white text-text-heading shadow-sm"
@@ -81,7 +91,7 @@ export default function Auth() {
           </button>
           <button
             type="button"
-            onClick={() => { setMode("signup"); setError(null); }}
+            onClick={() => { setMode("signup"); setError(null); setSuccess(null); }}
             className={`flex-1 cursor-pointer rounded-md px-4 py-2 text-sm font-medium transition-all duration-150 ${
               mode === "signup"
                 ? "bg-white text-text-heading shadow-sm"
@@ -146,6 +156,13 @@ export default function Auth() {
           {error && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
               {error}
+            </p>
+          )}
+
+          {/* Success */}
+          {success && (
+            <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+              {success}
             </p>
           )}
 

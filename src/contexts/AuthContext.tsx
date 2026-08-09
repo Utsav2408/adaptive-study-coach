@@ -21,6 +21,11 @@ interface Profile {
   created_at: string;
 }
 
+interface SignUpResult {
+  error: string | null;
+  emailConfirmationSent?: boolean;
+}
+
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
@@ -31,7 +36,7 @@ interface AuthContextValue {
     email: string,
     password: string,
     fullName: string,
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<SignUpResult>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -128,12 +133,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Sign Up ────────────────────────────────────────────────────
   const signUp = useCallback(
     async (email: string, password: string, fullName: string) => {
-      // 1. Create the auth user
+      // 1. Create the auth user — pass fullName via user_metadata so the
+      //    database trigger (handle_new_user) picks it up automatically.
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: window.location.origin,
+          data: { full_name: fullName },
         },
       });
 
@@ -146,26 +153,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: "Sign up succeeded but no user was returned." };
       }
 
-      // 2. Wait briefly for session to be available
-      await new Promise((r) => setTimeout(r, 500));
-
-      // 3. Insert profile row
-      const { error: profileError } = await supabase.from("profiles").insert({
-        id: newUser.id,
-        full_name: fullName,
-      });
-
-      if (profileError) {
-        console.error("Profile insert failed:", profileError);
-        // Auth user exists but profile creation failed — surface the error
-        return {
-          error: `Account created but we couldn't save your profile: ${profileError.message}. Please try updating your profile.`,
-        };
+      // 2. If a session was returned (email confirmation disabled), the
+      //    trigger has already created the profile. Refresh it.
+      if (data.session) {
+        await refreshProfile();
       }
 
-      // 4. Refresh profile and return
-      await refreshProfile();
-      return { error: null };
+      // 3. Let the caller know whether email confirmation is needed
+      return { error: null, emailConfirmationSent: !data.session };
     },
     [refreshProfile],
   );
