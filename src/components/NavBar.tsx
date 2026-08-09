@@ -31,6 +31,8 @@ export default function NavBar() {
   const [editOpen, setEditOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [studyFocus, setStudyFocus] = useState("");
+  const [otherFocus, setOtherFocus] = useState("");
+  const [proficiencyLevel, setProficiencyLevel] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -38,11 +40,41 @@ export default function NavBar() {
 
   useClickOutside(dropdownRef, () => setDropdownOpen(false));
 
+  // Predefined study focus options
+  const STUDY_FOCUS_OPTIONS = [
+    { value: "exam_prep", label: "Exam Preparation" },
+    { value: "certification", label: "Certification" },
+    { value: "self_study", label: "Self-Study" },
+    { value: "professional_development", label: "Professional Development" },
+    { value: "other", label: "Other" },
+  ] as const;
+
+  const PROFICIENCY_LEVELS = [
+    { value: "beginner", label: "Beginner" },
+    { value: "intermediate", label: "Intermediate" },
+    { value: "advanced", label: "Advanced" },
+  ] as const;
+
   // Reset form fields when modal opens
   useEffect(() => {
     if (editOpen && profile) {
       setFullName(profile.full_name);
-      setStudyFocus(profile.study_focus);
+      // Map stored study_focus to dropdown selection
+      const storedFocus = profile.study_focus ?? "";
+      const matched = STUDY_FOCUS_OPTIONS.find(
+        (opt) => opt.value !== "other" && opt.value === storedFocus,
+      );
+      if (matched) {
+        setStudyFocus(storedFocus);
+        setOtherFocus("");
+      } else if (storedFocus) {
+        setStudyFocus("other");
+        setOtherFocus(storedFocus);
+      } else {
+        setStudyFocus("");
+        setOtherFocus("");
+      }
+      setProficiencyLevel(profile.proficiency_level ?? "");
       setSaveError(null);
     }
   }, [editOpen, profile]);
@@ -52,9 +84,16 @@ export default function NavBar() {
     setSaving(true);
     setSaveError(null);
 
+    const resolvedFocus =
+      studyFocus === "other" ? otherFocus.trim() : studyFocus;
+
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: fullName.trim(), study_focus: studyFocus.trim() })
+      .update({
+        full_name: fullName.trim(),
+        study_focus: resolvedFocus || null,
+        proficiency_level: proficiencyLevel || null,
+      })
       .eq("id", user.id);
 
     if (error) {
@@ -170,13 +209,62 @@ export default function NavBar() {
                 <label htmlFor="edit-focus" className="block text-sm font-medium text-text-heading">
                   Study Focus
                 </label>
-                <input
+                <select
                   id="edit-focus"
-                  type="text"
                   value={studyFocus}
                   onChange={(e) => setStudyFocus(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                />
+                  className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                >
+                  <option value="">Select your focus…</option>
+                  {STUDY_FOCUS_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                {studyFocus === "other" && (
+                  <div className="mt-3 animate-[fadeIn_150ms_ease-out]">
+                    <label
+                      htmlFor="edit-other-focus"
+                      className="block text-sm font-medium text-text-heading"
+                    >
+                      Please specify
+                    </label>
+                    <input
+                      id="edit-other-focus"
+                      type="text"
+                      value={otherFocus}
+                      onChange={(e) => setOtherFocus(e.target.value)}
+                      placeholder="e.g. learning a new language"
+                      className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-accent focus:ring-2 focus:ring-accent/20"
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* ── Proficiency Level ───────────────────────────── */}
+              <div>
+                <label className="block text-sm font-medium text-text-heading">
+                  Proficiency Level
+                </label>
+                <div className="mt-2 flex gap-2">
+                  {PROFICIENCY_LEVELS.map((level) => (
+                    <button
+                      key={level.value}
+                      type="button"
+                      onClick={() => setProficiencyLevel(level.value)}
+                      className={`flex-1 cursor-pointer rounded-lg border px-4 py-2.5 text-sm font-medium transition-all duration-150 ${
+                        proficiencyLevel === level.value
+                          ? "border-accent bg-accent/10 text-accent shadow-sm"
+                          : "border-gray-300 bg-white text-text-body hover:border-gray-400 hover:text-text-heading"
+                      }`}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {saveError && (

@@ -12,7 +12,6 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [studyFocus, setStudyFocus] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -35,16 +34,11 @@ export default function Auth() {
           setSubmitting(false);
           return;
         }
-        if (!studyFocus.trim()) {
-          setError("Please enter your study focus.");
-          setSubmitting(false);
-          return;
-        }
-        const { error: err } = await signUp(email, password, fullName.trim(), studyFocus.trim());
+        const { error: err } = await signUp(email, password, fullName.trim());
         if (err) {
           setError(err);
         } else {
-          navigate("/");
+          navigate("/onboarding");
         }
       }
     } catch {
@@ -132,37 +126,20 @@ export default function Auth() {
           </div>
 
           {mode === "signup" && (
-            <>
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-text-heading">
-                  Full Name
-                </label>
-                <input
-                  id="fullName"
-                  type="text"
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder="e.g. Alex Johnson"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="studyFocus" className="block text-sm font-medium text-text-heading">
-                  Study Focus
-                </label>
-                <input
-                  id="studyFocus"
-                  type="text"
-                  required
-                  value={studyFocus}
-                  onChange={(e) => setStudyFocus(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  placeholder="e.g. exam prep, certification, self-study"
-                />
-              </div>
-            </>
+            <div>
+              <label htmlFor="fullName" className="block text-sm font-medium text-text-heading">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-text-heading outline-none transition-all duration-150 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                placeholder="e.g. Alex Johnson"
+              />
+            </div>
           )}
 
           {/* Error */}

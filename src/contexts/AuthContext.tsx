@@ -16,7 +16,8 @@ import type { User, Session } from "@supabase/supabase-js";
 interface Profile {
   id: string;
   full_name: string;
-  study_focus: string;
+  study_focus: string | null;
+  proficiency_level: string | null;
   created_at: string;
 }
 
@@ -30,7 +31,6 @@ interface AuthContextValue {
     email: string,
     password: string,
     fullName: string,
-    studyFocus: string,
   ) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -127,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // ── Sign Up ────────────────────────────────────────────────────
   const signUp = useCallback(
-    async (email: string, password: string, fullName: string, studyFocus: string) => {
+    async (email: string, password: string, fullName: string) => {
       // 1. Create the auth user
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -153,7 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error: profileError } = await supabase.from("profiles").insert({
         id: newUser.id,
         full_name: fullName,
-        study_focus: studyFocus,
       });
 
       if (profileError) {

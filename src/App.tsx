@@ -7,8 +7,9 @@ import Quiz from "./pages/Quiz";
 import Results from "./pages/Results";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
+import Onboarding from "./pages/Onboarding";
 
-const navBarHiddenPaths = ["/quiz", "/results", "/auth"];
+const navBarHiddenPaths = ["/quiz", "/results", "/auth", "/onboarding"];
 
 export default function App() {
   const location = useLocation();
@@ -20,6 +21,14 @@ export default function App() {
         {showNavBar && <NavBar />}
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/"
             element={
